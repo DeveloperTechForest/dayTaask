@@ -1,0 +1,174 @@
+@import "tailwindcss";
+
+/* ====================== DAYTAASK DESIGN SYSTEM - 100% MATCH WITH YOUR CONFIG ====================== */
+:root {
+  /* Exact RGB values → converted to HSL only where needed by Tailwind */
+  --background: 0 0% 98.04%; /* rgb(250, 250, 250) ≈ #fafafa */
+  --light-bg: 0 0% 98.04%; /* same as background */
+  --foreground: 210 78.57% 11%; /* rgb(17, 24, 39)   → very close to your dark navy */
+  --card: 0 0% 100%; /* rgb(255, 255, 255) */
+  --border: 0deg 0.86% 70.76%; /* rgb(229, 231, 235) */
+  --primary: 219 64.7% 32.9%; /* rgb(30, 58, 138)   → exact navy blue */
+  --primary-foreground: 0 0% 100%; /* rgb(255, 255, 255) */
+  --secondary: 42.6 100% 56.3%; /* rgb(251, 191, 36)  → exact amber */
+  --muted: 220 8.4% 64.9%; /* rgb(156, 163, 175) */
+  --muted-foreground: 220 11.8% 46.1%; /* rgb(107, 114, 128) */
+
+  --radius: 0.75rem;
+
+  /* Shadows from your config */
+  --shadow-brand-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  --shadow-brand-xl: 0 35px 60px -15px rgba(0, 0, 0, 0.3);
+
+  --transition-brand: all 0.2s ease-in-out;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-light-bg: var(--light-bg);
+  --radius: var(--radius);
+}
+
+/* Force all Lucide icons to inherit text color properly */
+i[data-lucide] {
+  @apply text-current;
+  color: inherit !important;
+}
+
+/* Optional: default muted color for all icons in inputs */
+input ~ i[data-lucide],
+input + i[data-lucide],
+i[data-lucide] {
+  @apply text-muted-foreground;
+}
+
+/* Custom utilities to match your exact config */
+.transition-brand {
+  transition: var(--transition-brand);
+}
+
+.shadow-brand-lg {
+  box-shadow: var(--shadow-brand-lg);
+}
+
+.shadow-brand-xl {
+  box-shadow: var(--shadow-brand-xl);
+}
+
+/* Hover & focus states */
+.hover\:bg-primary\/10:hover {
+  background-color: hsl(var(--primary) / 0.1);
+}
+
+.focus-visible\:ring-orange:focus-visible {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px hsl(42.6 100% 56.3% / 0.5); /* matches secondary amber */
+}
+
+/* Base styles */
+
+body {
+  @apply bg-background text-foreground antialiased;
+  font-family:
+    Inter, ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
+    "Segoe UI Emoji";
+}
+
+/* Heading font exactly as in your config */
+.font-heading {
+  font-family: Inter, system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+/* Optional: make Inter the default sans font globally */
+.font-sans {
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ====================== END DAYTAASK DESIGN SYSTEM ====================== */
+
+/* customer home page changes */
+
+/* Fade-in-up for steps & testimonials */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.9s ease-out forwards;
+}
+
+/* Responsive typography & spacing */
+@media (max-width: 640px) {
+  .text-3xl {
+    font-size: 1.875rem; /* 30px */
+  }
+  .text-xl {
+    font-size: 1.125rem; /* 18px */
+  }
+}
+
+/* Gentle pulse for step numbers */
+.animate-pulse-slow {
+  animation: pulse 3s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+/* Mobile menu slide-in */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.4s ease-out forwards;
+}
+
+/* Fade-in overlay */
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Profile dropdown fade-in */
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out forwards;
+}

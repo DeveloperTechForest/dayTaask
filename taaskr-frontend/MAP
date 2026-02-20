@@ -1,0 +1,82 @@
+my-taaskr-app/
+├── app/                          # ← Core of Next.js App Router (defines routes)
+│   ├── (auth)/                   # Route group – no URL prefix (/login instead of /auth/login)
+│   │   ├── login/
+│   │   │   └── page.jsx        # /login
+│   │   ├── register/
+│   │   │   └── page.jsx        # /register
+│   │   ├── onboarding/
+│   │   │   └── page.jsx        # /onboarding
+│   │   └── pending/
+│   │       └── page.jsx        # /pending (after register?)
+│   │
+│   ├── (taaskr)/                 # Protected / dashboard area – can add (taaskr) prefix or not
+│   │   ├── layout.jsx          # Shared layout for all dashboard pages (sidebar + header?)
+│   │   ├── dashboard/
+│   │   │   └── page.jsx        # /taaskr/dashboard     ← or just /dashboard
+│   │   ├── jobs/
+│   │   │   ├── page.jsx        # /taaskr/jobs
+│   │   │   └── [id]/
+│   │   │       └── page.jsx    # /taaskr/jobs/:id
+│   │   ├── wallet/
+│   │   │   └── page.tsx
+│   │   ├── notifications/
+│   │   │   └── page.tsx
+│   │   ├── profile/
+│   │   │   └── page.tsx
+│   │   └── support/
+│   │       └── page.tsx
+│   │
+│   ├── api/                      # Server-side API routes (if needed)
+│   │   └── ...                   # e.g. /api/stripe, /api/notifications
+│   │
+│   ├── globals.css               # Your converted global styles (from previous message)
+│   ├── layout.jsx              # Root layout (html, body, providers, Toaster, etc.)
+│   ├── page.jsx                # Home / landing page → / (redirect or show TaaskrLanding)
+│   ├── not-found.jsx           # 404 page
+│   └── favicon.ico               # (optional)
+│
+├── components/                   # Reusable UI pieces (shared across app)
+│   ├── ui/                       # shadcn/ui or your custom primitive components
+│   │   ├── button.tsx
+│   │   ├── toaster.tsx
+│   │   ├── sonner.jsx          # or toast component
+│   │   ├── tooltip.tsx
+│   │   └── ...                   # card, input, dialog, badge, etc.
+│   │
+│   ├── taaskr/                   # Domain-specific / branded components
+│   │   ├── Logo.tsx
+│   │   ├── Header.jsx          # if you extract it
+│   │   ├── Sidebar.jsx         # dashboard sidebar
+│   │   ├── StatusBadge.tsx
+│   │   └── ... 
+│   │
+│   └── common/                   # very generic (optional)
+│       ├── LoadingSpinner.tsx
+│       └── ...
+│
+├── lib/                          # Utilities, helpers, non-UI logic
+│   ├── utils.ts                  # cn() from shadcn, date formatters, etc.
+│   ├── auth.ts                   # auth helpers (getSession, etc.)
+│   ├── api.ts                    # axios/fetch wrapper or tanstack query helpers
+│   └── constants.ts
+│
+├── hooks/                        # Custom react hooks
+│   ├── useUser.ts
+│   └── ...
+│
+├── store/                        # If using Zustand / Jotai (optional)
+│   └── userStore.ts
+│
+├── types/                        # (optional – only if you keep some types)
+│   └── index.ts
+│
+├── public/                       # Static files
+│   ├── images/
+│   └── fonts/                    (if self-hosted)
+│
+├── next.config.mjs               # or .js
+├── tailwind.config.ts            # if you decide to keep Tailwind later
+├── tsconfig.json                 # we'll remove most TS later
+├── package.json
+└── README.md

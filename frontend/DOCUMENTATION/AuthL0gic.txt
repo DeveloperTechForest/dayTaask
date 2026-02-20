@@ -1,0 +1,246 @@
+✔ login with cookies
+✔ reload user from /api/users/me/
+✔ logout
+✔ show role-based UI
+✔ protect pages
+✔ protect buttons
+✔ support “return after login”
+
+
+
+Below is a clean, simple, copy-paste ready guide for how to use your AuthContext inside any Next.js component, including:
+
+✅ Login
+✅ Logout
+✅ Require Auth
+✅ Role-based UI
+✅ Role-based route protection
+✅ Protecting “Book Now” / “Get Quote”
+✅ Showing user info
+
+I’ll give fully working examples.
+
+✅ 1. Wrap Your App with AuthProvider
+
+In your /app/layout.js:
+
+        import { AuthProvider } from "@/context/AuthContext";
+
+        export const metadata = {
+        title: "Home Services",
+        };
+
+        export default function RootLayout({ children }) {
+        return (
+            <html lang="en">
+            <body>
+                <AuthProvider>
+                {children}
+                </AuthProvider>
+            </body>
+            </html>
+        );
+        }
+
+
+✔ Now all pages/components can use useAuth().
+
+✅ 2. How to Use login() Inside Your Login Page
+
+Example: /app/login/page.jsx
+
+        "use client";
+
+        import { useAuth } from "@/context/AuthContext";
+        import { useState } from "react";
+
+        export default function LoginPage() {
+        const { login, authLoading, error } = useAuth();
+        const [email, setEmail] = useState("");
+        const [password, setPassword] = useState("");
+
+        const onSubmit = async (e) => {
+            e.preventDefault();
+            const result = await login({ email, password });
+
+            if (result.ok) {
+            // optional redirect
+            window.location.href = "/";
+            }
+        };
+
+        return (
+            <div className="p-10">
+            <h1 className="text-3xl">Login</h1>
+
+            {error && <p className="text-red-600">{error}</p>}
+
+            <form onSubmit={onSubmit}>
+                <input
+                className="border p-2 block my-2"
+                placeholder="Email"
+                onChange={(e) => setEmail(e.target.value)}
+                />
+
+                <input
+                className="border p-2 block my-2"
+                type="password"
+                placeholder="Password"
+                onChange={(e) => setPassword(e.target.value)}
+                />
+
+                <button
+                type="submit"
+                disabled={authLoading}
+                className="bg-yellow-500 text-white px-4 py-2 rounded"
+                >
+                {authLoading ? "Loading..." : "Login"}
+                </button>
+            </form>
+            </div>
+        );
+        }
+
+✅ 3. How to Use logout() Anywhere (header, profile page, etc.)
+
+Inside any client component:
+
+        "use client";
+        import { useAuth } from "@/context/AuthContext";
+
+        export default function Header() {
+        const { user, logout } = useAuth();
+
+        return (
+            <header className="p-4 bg-black text-white flex justify-between">
+            <h1>DayTask</h1>
+
+            {user ? (
+                <button onClick={logout} className="bg-red-500 px-3 py-1 rounded">
+                Logout
+                </button>
+            ) : (
+                <a href="/login" className="bg-yellow-500 px-3 py-1 rounded">
+                Login
+                </a>
+            )}
+            </header>
+        );
+        }
+
+✅ 4. How to Show UI Based on Role
+
+Example: show “Dashboard” only for taaskr and admin:
+
+        "use client";
+        import { useAuth } from "@/context/AuthContext";
+
+        export default function UserMenu() {
+        const { user, hasRole, hasAnyRole } = useAuth();
+
+        return (
+            <div>
+            {hasAnyRole("admin", "super_admin", "taaskr") && (
+                <a href="/dashboard" className="block">
+                Dashboard
+                </a>
+            )}
+
+            {hasRole("customer") && (
+                <a href="/my-bookings">My Bookings</a>
+            )}
+            </div>
+        );
+        }
+
+✅ 5. Protect “Book Now” and “Get Quote” Buttons
+
+Your service component:
+
+        "use client";
+
+        import { useAuth } from "@/context/AuthContext";
+        import { useRouter } from "next/navigation";
+
+        export default function ServiceActions({ serviceId }) {
+        const { user, loading } = useAuth();
+        const router = useRouter();
+
+        const handleBookNow = () => {
+            if (!user) return router.push("/login?next=/booking/" + serviceId);
+
+            router.push("/booking/" + serviceId);
+        };
+
+        return (
+            <div className="flex gap-4">
+            <button
+                onClick={handleBookNow}
+                className="bg-yellow-500 text-white px-5 py-2 rounded"
+            >
+                Book Now
+            </button>
+
+            <button
+                onClick={handleBookNow}
+                className="bg-black text-white px-5 py-2 rounded"
+            >
+                Get a Quote
+            </button>
+            </div>
+        );
+        }
+
+
+✔ If user not logged in → redirect to login
+✔ After login → redirect to where they came from
+
+✅ 6. Protect a Full Page (CSR Protection)
+
+Example: /app/profile/page.jsx
+
+        "use client";
+
+        import { useAuth } from "@/context/AuthContext";
+        import { useRouter } from "next/navigation";
+        import { useEffect } from "react";
+
+        export default function ProfilePage() {
+        const { user, loading } = useAuth();
+        const router = useRouter();
+
+        useEffect(() => {
+            if (!loading && !user) {
+            router.push("/login");
+            }
+        }, [loading, user]);
+
+        if (loading) return <p>Loading...</p>;
+        if (!user) return null;
+
+        return <div>Your profile: {user.full_name}</div>;
+        }
+
+✅ 7. Protect a Page by Role (example: Admin Only)
+"use client";
+
+        import { useAuth } from "@/context/AuthContext";
+        import { useEffect } from "react";
+        import { useRouter } from "next/navigation";
+
+        export default function AdminDashboard() {
+        const { user, loading, hasAnyRole } = useAuth();
+        const router = useRouter();
+
+        useEffect(() => {
+            if (!loading) {
+            if (!user) return router.push("/login");
+            if (!hasAnyRole("admin", "super_admin"))
+                return router.push("/unauthorized");
+            }
+        }, [loading, user]);
+
+        if (loading) return <p>Loading...</p>;
+
+        return <h1>Welcome Admin</h1>;
+        }

@@ -1,0 +1,154 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,100..1000;1,100..1000&display=swap");
+@import "tailwindcss";
+
+/* -----------------------------------
+   LIGHT MODE COLOR PALETTE (HEX)
+----------------------------------- */
+:root {
+  --background: #f8fafc; /* dashboard bg */
+  --foreground: #0f172a; /* main text */
+  --card: #ffffff; /* cards */
+  --primary: #ff7a1a; /* orange */
+  --primary-hover: #ff8a33;
+  --muted: #f1f5f9; /* soft grey bg */
+  --muted-foreground: #64748b; /* grey text */
+  --border: #e5e7eb; /* light border */
+
+  /* SIDEBAR (WHITE THEME LIKE IMAGE) */
+  --sidebar-bg: #0f172a;
+  --sidebar-fg: #ffffff;
+  --sidebar-primary: #ff7a1a;
+  --sidebar-accent: #192849; /* hover */
+  --sidebar-border: #e5e7eb;
+}
+
+/* -----------------------------------
+   TAILWIND THEME MAPPING
+----------------------------------- */
+@theme inline {
+  --color-bg: var(--background);
+  --color-fg: var(--foreground);
+  --color-card: var(--card);
+  --color-primary: var(--primary);
+  --color-muted: var(--muted);
+  --color-muted-fg: var(--muted-foreground);
+  --color-border: var(--border);
+
+  --color-sidebar-bg: var(--sidebar-bg);
+  --color-sidebar-fg: var(--sidebar-fg);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-border: var(--sidebar-border);
+}
+
+/* -----------------------------------
+   BASE STYLES
+----------------------------------- */
+body {
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: "DM Sans", system-ui, sans-serif;
+}
+
+/* Always support dark mode on OS-level */
+html {
+  color-scheme: light dark;
+}
+
+/* From Uiverse.io by Smit-Prajapati */
+.checkbox {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  border: 2px solid rgb(255, 153, 0);
+  /* border: 2px solid rgb(0, 0, 0); */
+  position: relative;
+  transition: all 0.2s ease-in-out;
+}
+
+.checkbox::before {
+  font-family: "Quicksand", sans-serif;
+  position: absolute;
+  bottom: -4px;
+  left: 1px;
+  content: "✔";
+  font-size: 20px;
+  color: rgb(0, 0, 0);
+  transform: scale(0);
+  transition: all 0.2s ease-in-out;
+}
+
+.checkbox:checked::before {
+  animation: zoom 0.5s ease-in-out;
+  transform: scale(1);
+}
+
+@keyframes zoom {
+  0% {
+    transform: scale(0);
+  }
+
+  20% {
+    transform: scale(1.5);
+  }
+
+  40% {
+    transform: scale(0.5);
+  }
+
+  50% {
+    transform: scale(1);
+  }
+
+  70% {
+    transform: scale(1.2);
+  }
+
+  90% {
+    transform: scale(0.8);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@layer utilities {
+  /* Slim themed scrollbar */
+  .scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #ff7a00 #1f2937; /* thumb + track (Firefox) */
+  }
+
+  .scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .scrollbar::-webkit-scrollbar-track {
+    background: #1f2937; /* dark sidebar tone */
+    border-radius: 9999px;
+  }
+
+  .scrollbar::-webkit-scrollbar-thumb {
+    background: #475569; /* neutral gray */
+    border-radius: 9999px;
+    transition: background 0.2s ease;
+  }
+
+  .scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #ff7a00; /* your orange accent */
+  }
+
+  /* Hide scrollbar utility */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}

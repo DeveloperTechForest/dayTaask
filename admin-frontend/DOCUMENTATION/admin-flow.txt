@@ -1,0 +1,473 @@
+### Admin panel — overall layout & common UI elements
+    Global header / layout
+    •	Left vertical navigation (collapsible) with icons + labels.
+    •	Top bar: search (global), quick actions, notifications bell, admin user avatar + dropdown (Profile, Settings, Sign out).
+    •	Breadcrumbs under top bar.
+    •	Page title + subtitle under breadcrumbs.
+    •	Right-side contextual panel (optional) for quick details.
+    •	Standard page layout: filters/top toolbar → main table / content → details drawer / modal.
+    •	Global footer small: version, copyright, support link.
+    Global components
+    •	Primary button (orange) – main CTA.
+    •	Secondary button (navy/outline).
+    •	Danger button (red) – destructive actions.
+    •	Table with row selection (checkbox), sortable columns, pagination, page size selector.
+    •	Search input with type-ahead.
+    •	Filters panel (collapsible / drawer).
+    •	Detail drawer (slides from right) for record preview/edit.
+    •	Confirmation modal (title, message, confirm/cancel).
+    •	Form modal (title, form body, save/cancel).
+    •	Toast / Snackbar for success/error.
+    •	Loading skeletons and empty states.
+    •	Audit trail viewer component.
+    •	Bulk actions toolbar (visible when rows selected).
+    Accessibility & Behavior
+    •	Keyboard shortcuts: / focus search, n new resource (where applicable), ? help.
+    •	Confirm destructive actions with password re-prompt for super-admins.
+    •	Role-based UI visibility (hide restricted modules).
+    •	Dark/light theme optional.
+________________________________________
+### Global navigation structure (suggested order)
+    1.	Dashboard (Overview)
+    2.	Users
+        o	Customers
+        o	Taaskrs (Service Providers)
+        o	Roles & Permissions
+    3.	Services
+        o	Categories
+        o	Services
+        o	Add-ons
+    4.	Bookings
+        o	All Bookings
+        o	Assignments
+        o	Calendar View
+    5.	Payments
+        o	Transactions
+        o	Payouts
+        o	Refunds
+    6.	Quotes / Consultations
+    7.	Media & Evidence
+    8.	Reviews & Disputes
+    9.	Support & Tickets
+    10.	Promotions & Coupons
+    11.	Notifications & Email Templates
+    12.	Reports & Analytics
+    13.	Settings & Integrations
+    14.	Audit Logs
+    15.	System Health & Jobs (Celery)
+    16.	CMS (Pages & Banners)
+________________________________________
+1. Dashboard (Overview)
+    Heading / Subtitle
+    •	“Dashboard” — “Real-time snapshot of platform health”
+    Widgets / cards
+    •	Total users (customers) — numeric + change %
+    •	Total Taaskrs — numeric + change %
+    •	Active bookings (now) — numeric + link to live map
+    •	Revenue (today / 7d / month)
+    •	New signups (24h)
+    •	Pending KYC / Documents
+    •	Pending disputes / support tickets
+    •	Payments pending / payout due
+    •	API error rate / system alerts (small)
+    Charts
+    •	Bookings over time (line) — date range selector
+    •	Revenue breakdown by payment type (bar/pie)
+    •	Taaskr acceptance rate (gauge)
+    •	Top services (bar)
+    •	Geographic heatmap (optional)
+    Buttons / actions
+    •	Date range selector (preset: Today, 7d, 30d, Custom)
+    •	Export snapshot (PDF / CSV)
+    •	Quick action buttons: Create Service, Create Coupon, Create Announcement
+    Right-side live feed
+    •	Recent activity feed: new bookings, new registrations, payment events.
+    ________________________________________
+2. Users section
+    A. Customer list (table)
+        Table columns
+            •	Checkbox (bulk)
+            •	Customer ID
+            •	Name
+            •	Email
+            •	Phone (verified icon)
+            •	Joined date
+            •	Total bookings
+            •	Lifetime spend
+            •	Status (Active / Blocked)
+            •	Last active (timestamp)
+            •	Actions (View, Impersonate, Block/Unblock, Export)
+        Filters
+            •	Search (name/email/phone)
+            •	Date joined (range)
+            •	Status (active/blocked)
+            •	Min bookings / max bookings
+            •	Min lifetime spend
+            •	Email verified / phone verified
+            •	Has open disputes (toggle)
+        Row actions
+            •	View profile (drawer)
+            •	Impersonate (start session) — confirm modal
+            •	Send password reset / Send notification
+            •	Block / Unblock (confirm)
+            •	Add note (internal)
+        Profile detail (drawer or page)
+            •	Header: avatar, name, email, phone, status badges
+            •	Tabs:
+            o	Overview: basic info, KYC status, signup method (google/phone/email)
+            o	Bookings: recent bookings list (click to booking detail)
+            o	Payments & Wallet: balance, transactions
+            o	Addresses: list with edit/delete
+            o	Activity log: last 50 events
+            o	Notes: admin private notes with add button
+            •	Buttons: Edit profile, Reset password, Export user data (GDPR)
+B. Taaskrs (Service providers) list
+    Table columns
+        •	Taaskr ID
+        •	Name
+        •	Phone (verified)
+        •	Primary skill(s)
+        •	Rating (avg)
+        •	Completed bookings
+        •	Acceptance rate
+        •	Current status: Verified / Under Review / Suspended / Offline / Online
+        •	Wallet balance / Pending payout
+        •	KYC status (Pending / Approved / Rejected)
+        •	Actions: View, Suspend, Message, Payout
+    Filters
+        •	Skills/categories
+        •	Rating min
+        •	KYC status
+        •	Availability status
+        •	Location (city / radius)
+        •	Active today (toggle)
+        •	Suspended (toggle)
+    Profile detail (Taaskr)
+        •	Overview: personal info, avatar, rating, joined date
+        •	KYC documents viewer (images, timestamps, admin approval buttons Approve/Reject with reason)
+        •	Bank details (masked)
+        •	Availability calendar & time slots
+        •	Earnings summary (this month / last month)
+        •	Jobs list (recent)
+        •	Penalties & warnings
+        •	Conversation with admin
+        •	Performance metrics: avg response time, acceptance rate, cancel rate
+        •	Buttons: Suspend, Reinstate, Force Logout, Initiate payout, Export profile
+        C. Roles & Permissions
+    Page
+        •	Roles list (Super Admin, Ops, Support, Finance, QA, etc.)
+        •	Role detail: permission matrix (modules → read/write/delete)
+        •	Buttons: Create role, Edit permissions, Assign role to user, Revoke
+        •	Bulk assign roles
+________________________________________
+3. Services (Categories / Services / Add-ons)
+    A. Categories list
+        Table columns
+            •	Category ID
+            •	Name
+            •	Icon (thumbnail)
+            •	Banner (thumbnail)
+            •	Active (toggle)
+            •	Sort order
+            •	Created at
+            •	Actions: Edit, Delete, View services
+        Category form fields
+            •	Name (text)
+            •	Slug (auto)
+            •	Icon (image upload)
+            •	Banner (image upload)
+            •	Description (rich text)
+            •	Active toggle
+            •	Meta tags (seo title, meta description)
+            •	Save / Cancel / Delete
+    B. Services list
+        Table columns
+            •	Service ID
+            •	Service name
+            •	Category
+            •	Short description (truncated)
+            •	Base price
+            •	Price unit (fixed/hourly)
+            •	Duration (mins)
+            •	Warranty days
+            •	Active
+            •	Created at
+            •	Actions: Edit, View, Disable/Enable, Duplicate
+        Service editor form
+            •	Name
+            •	Category (select)
+            •	Short description
+            •	Full description (rich text)
+            •	Base price (decimal)
+            •	Price unit (select: fixed/hourly/custom)
+            •	Duration (minutes)
+            •	Images (gallery uploader, reorder + set cover)
+            •	Addons (inline add / edit list)
+            •	FAQs (add list)
+            •	Warranty days (int)
+            •	Cancellation policy (text)
+            •	GST applicability (checkbox + percent)
+            •	Tags (searchable)
+            •	Active toggle
+            •	SEO fields (meta title, description)
+            •	Save / Save & Publish / Delete / Preview on frontend (opens new tab)
+        C. Addons CRUD
+            Table
+            •	Addon ID, name, service (link), price, active, actions
+            Addon form
+            •	Name, price, description, active toggle, stock (if physical), SKU (optional)
+________________________________________
+4. Bookings
+    A. All Bookings list (table)
+        Columns
+            •	Checkbox
+            •	Booking ID (BK-XXXX)
+            •	Customer (name, phone)
+            •	Service name
+            •	Taaskr (if assigned)
+            •	Booking date & time
+            •	Created at
+            •	Status (Pending/Payment Pending/Confirmed/Assigned/En Route/Started/Completed/Cancelled)
+            •	Total amount
+            •	Payment status (Paid / Unpaid / Partial / Refunded)
+            •	Actions: View, Assign, Reschedule, Cancel, Refund
+        Filters
+            •	Search by booking ID / customer / taaskr / phone
+            •	Date range (booking date)
+            •	Booking status
+            •	Payment status
+            •	Service category
+            •	City / location
+            •	Source (web/mobile)
+            •	Assigned / unassigned
+            •	Promo used (toggle)
+        Row actions
+            •	Quick assign (modal to pick taaskr)
+            •	Reschedule (modal: choose new slot)
+            •	Cancel (modal reason + refund checkbox)
+            •	Quick chat with customer / taaskr
+            •	Export booking pdf/invoice
+    B. Booking detail page
+        Header
+            •	Booking ID, status badge, action buttons (Assign, Reschedule, Cancel, Refund, Mark Completed)
+            Sections
+            •	Summary card: customer, taaskr, address, time slot, service card, price breakdown (service, addons, tax, discounts), payment status
+            •	Timeline / Status history (timestamps + actor)
+            •	Media (before photos, after photos, audio) with download buttons and view modal
+            •	Chat / notes with customer
+            •	Internal notes & audit log
+            •	Logs: webhook events, payment events
+            •	Buttons: Send reminder SMS, Re-issue invoice, Issue refund (modal), Add internal note
+            •	If assigned: Taaskr profile quick link + contact buttons
+            •	If unassigned: auto-assign suggestions (list of nearby taaskrs with acceptance rate) and manual assign button
+________________________________________
+5. Payments & Finance
+    A. Transactions list
+        Columns
+            •	Transaction ID
+            •	Booking ID (link)
+            •	Customer
+            •	Amount
+            •	Payment method (Card/UPI/Wallet)
+            •	Provider Txn ID
+            •	Status (Success / Failed / Pending / Refunded)
+            •	Created at
+            •	Actions: View, Retry, Refund
+        Filters
+            •	Date range
+            •	Status filter
+            •	Method filter
+            •	Min/max amount
+            •	Booking ID / customer search
+    B. Payouts (Taaskr payouts)
+        Columns
+            •	Payout ID
+            •	Taaskr
+            •	Amount
+            •	Commission deducted
+            •	Net pay
+            •	Status (Pending / Initiated / Paid / Failed)
+            •	Scheduled date
+            •	Actions: Approve payout, Mark paid, Retry
+            Payout Modal
+            •	Bank details (masked) + approve button + notes
+    C. Refund manager
+        •	Refund requests list (booking id, reason, amount, status)
+        •	Approve/refuse refund (modal with confirm)
+        •	Partial refund input
+        •	Refund queue (webhook processing)
+    D. Reports & reconciliations
+        •	Daily settlements (download CSV)
+        •	Tax reports (GST summary)
+        •	Export transactions (CSV / Excel / PDF)
+        •	Settlement matching (compare payment provider reports)
+________________________________________
+6. Quotes / Consultations
+    List of quotes
+        •	Quote ID, customer, service/category, status (Requested / Quoted / Accepted / Converted / Rejected), created at, assigned expert, actions: View, Send Quote, Convert to Booking
+        Quote detail
+        •	Attachments view (download), chat with customer, create quote form (price, ETA, notes), convert to booking (button), send to customer (button)
+________________________________________
+7. Media & Evidence
+    Media library
+        •	Searchable list of media files (booking id, type, uploaded by, uploaded at, tags)
+        •	Preview modal (image / audio player)
+        •	Actions: Download, Mark as evidence, Delete, Flag
+        •	Bulk export (zip) for dispute support
+    Storage info
+        •	Show usage stats (S3 bucket size, retention policy)
+        •	Purge / retention management tools
+________________________________________
+8. Reviews & Disputes
+    Reviews list
+        •	Review ID, booking id, customer, taaskr, rating, comment snippet, created at, actions: View full, Remove, Respond, Flag
+    Disputes list
+        •	Dispute ID, booking, type (service / payment), status (Open / Under Review / Resolved), priority, assigned to, create resolution notes, actions: Assign, Escalate, Close, Refund
+        Dispute detail
+        •	Full timeline, evidence, chat, admin decision buttons
+________________________________________
+9. Support & Tickets
+    Tickets list
+        •	Ticket ID, customer, subject, priority (Low/Med/High), status, assigned agent, created at, last reply, actions: View, Assign, Reply, Close
+        Ticket detail
+        •	Threaded conversation, attachments, internal notes, SLA timer, reassign, escalation options.
+    Quick reply templates
+        •	Canned responses library (manage templates)
+________________________________________
+10. Promotions & Coupons
+    Coupons list
+        •	Coupon code, type (flat/%), value, max discount, usage limit, used count, valid from / to, applicable services/categories, status (active/paused/expired), actions: Edit, Disable, Export usage
+    Coupon form fields
+        •	Code (auto-generate option)
+        •	Type (percentage / flat)
+        •	Value
+        •	Max discount
+        •	Min cart value
+        •	Validity dates
+        •	Usage limit per user
+        •	Applicable services/categories
+        •	Promo image (optional)
+        •	Active toggle
+    Promotion banners
+        •	Create banners with image, link, start/end dates, priority order, active toggle and preview
+________________________________________
+11. Notifications & Templates
+    Push / Email / SMS templates
+        •	Template name, channel (email/sms/push), subject (for email), body (rich text with placeholders), active toggle, preview/send test
+    Send broadcast
+        •	Audience selection (all users / segmented by city / customers who used service X / custom CSV upload)
+        •	Schedule / immediate send
+        •	Track delivery stats (opens / clicks / failed)
+________________________________________
+12. Reports & Analytics
+    Reports list
+        •	Revenue by date range
+        •	Booking volume by service
+        •	Taaskr performance report
+        •	Customer lifetime value
+        •	Churn / retention cohort analysis
+        •	Conversion funnel (service view → booking → payment)
+    Report controls
+        •	Date range, group by (day/week/month), export CSV/PDF, schedule recurring report email
+    Ad-hoc query tool
+        •	Run SQL or predefined queries (admins only)
+________________________________________
+13. Settings & Integrations
+    System settings
+        •	Platform name, logo upload, contact email, support number, timezone, currency, default tax (%), cancellation policy text, refund policy
+    Payment providers
+        •	Stripe / Razorpay / PayU credentials (test/live toggle)
+        •	Webhook endpoints with test buttons
+    SMS provider
+        •	Twilio / MSG91 config + test message
+    Email provider
+        •	Sendgrid / SES config + test send
+    Push provider
+        •	FCM key / APNs cert
+    S3 / Storage
+        •	S3 bucket, region, access key, secret (masked), retention policy
+    Geo & Maps
+        •	Google Maps API Key or alternative, distance radius defaults
+    Feature toggles
+        •	Enable/disable auto-assign, enable OTP login, enable pay-later
+    Audit / Security
+        •	Password policy (min length), session timeout, 2FA (enable), IP whitelist, admin IP access control
+________________________________________
+14. Roles & Permissions (Admin)
+    Roles CRUD
+        •	Role name, description, list of permissions (checkbox tree)
+        •	Assign roles to admin users
+        •	Permission matrix per module: Read / Create / Update / Delete / Export / Impersonate
+    User access logs
+        •	Show last login, IP, device, session management (revoke session)
+________________________________________
+15. Audit Logs & Activity
+    Audit log table
+        •	Timestamp, actor (admin id), module, action, target id, before/after diff (if change), request id, IP
+        •	Filters: actor, date range, module, action type
+        •	View full JSON payload for debugging
+        •	Export logs (with retention)
+    ________________________________________
+16. System Health & Jobs
+    Celery / background tasks
+        •	Running workers, queued tasks, failed tasks list, retry button, revoke
+        •	Task detail view with args, kwargs, traceback
+        •	Schedule management: periodic tasks (celery beat) list
+    System health
+        •	Redis status, DB connection status, disk usage (media), last backup status, scheduled maintenance windows
+________________________________________
+17. CMS (Pages, Banners, FAQs)
+    Pages
+        •	Title, slug, content (rich text), publish status, meta tags
+        •	Page preview on frontend
+    Banners
+        •	Image, link, start/end, priority, active toggle
+    FAQ
+        •	Category, question, answer, order, active toggle
+________________________________________
+18. API Keys & Webhooks
+    API Keys page
+        •	Create/revoke API keys for partners (key value, permissions, rate limit, expiry)
+        •	List of clients with last used & IP
+        •	Regenerate key modal with confirm
+    Webhooks
+        •	Register webhook URL, events subscribed, last delivery status, test webhook button, delivery logs
+________________________________________
+19. Data Export & GDPR
+    Export
+        •	Export user data (GDPR request) — one-click export per user
+        •	Delete user request handling: anonymize or delete (soft/hard) with admin confirm
+    Retention
+        •	Data purge policies and scheduled purge management
+________________________________________
+20. Developer / Staging Controls
+    •	Toggle environment (staging/production view)
+    •	Run database seeding scripts (for staging only)
+    •	Clear cache button
+    •	Rebuild search index
+    •	Trigger backup / restore (with confirmation)
+    •	Feature flag toggles
+________________________________________
+UX & Interaction notes (important)
+    •	Always ask confirmation for destructive actions and show consequences (refunds, notification to user).
+    •	Show clear success/failure messages with next steps.
+    •	Provide context-sensitive help (tooltip) for every complex field (e.g., commission rate).
+    •	Provide previews for email / SMS templates and coupon banners.
+    •	Use soft validations (warnings) for risky operations (e.g., mass delete, resend webhook, issue refund).
+    •	Use optimistic updates where safe but verify server result for critical operations (refunds, payouts).
+    •	For bulk operations, provide progress indicator and an undo window where possible.
+    •	Every page should have export option where data is tabular.
+    •	Provide role-based visibility in UI — e.g., Finance role sees Payments but not KYC approvals.
+________________________________________
+Final checks & acceptance criteria (how to know it's complete)
+    1.	Every admin page has a clear title, filters, table columns, primary action, and secondary actions.
+    2.	All CRUD operations have forms with validations and success / error flows.
+    3.	Complex operations (refunds/payouts/assign) use confirm modals and log the action in audit logs.
+    4.	All exports (CSV/Excel/PDF) are available from list pages.
+    5.	Role-based access enforced: unauthorized UI & APIs return proper 403.
+    6.	Media previews and downloads work for photos/audio; retention policy in place.
+    7.	Notifications dispatch (test) and show deliverability stats.
+    8.	Celery tasks monitorable and retryable.
+    9.	Admin users can impersonate customers safely (with audit) for troubleshooting.
+    10.	Admin panel is responsive and usable on 1366×768 and mobile for quick checks.
+
