@@ -1,0 +1,7 @@
+# bookings_app/pagination.py
+
+from rest_framework.pagination import PageNumberPagination
+
+
+class NoPagination(PageNumberPagination):
+    page_size = None

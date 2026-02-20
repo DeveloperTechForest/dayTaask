@@ -1,0 +1,107 @@
+# docker-compose.yml
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: postgres_db
+    environment:
+      POSTGRES_DB: daytaask_db
+      POSTGRES_USER: daytaask_user
+      POSTGRES_PASSWORD: daytaask_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U daytaask_user -d daytaask_db"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis_broker
+
+  backend:
+    build: ./backend
+    container_name: django_backend
+    command: ["/usr/src/app/entrypoint.sh"]
+    volumes:
+      - ./backend:/usr/src/app # 👈 Hot reload enabled
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  celery:
+    build: ./backend
+    container_name: celery_worker
+    command: celery -A daytaask_backend.celery worker -l info
+    volumes:
+      - ./backend:/usr/src/app
+    depends_on:
+      - backend
+      - redis
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: nextjs-dev
+    ports:
+      - "3000:3000"
+    volumes:
+      # 🚨 CRITICAL: This line mounts your local source code into the container.
+      # Ensure the path on the host side (left) is correct.
+      - ./frontend:/app
+
+      # 🚨 CRITICAL: Anonymous volumes to prevent host's files from overwriting container's dependencies.
+      - /app/node_modules
+      - /app/.next
+
+    environment:
+      # These are safety checks, but the next.config.mjs setting is usually more reliable.
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+
+  admin-frontend:
+    build:
+      context: ./admin-frontend
+    container_name: admin-nextjs
+    ports:
+      - "3001:3001"
+    volumes:
+      # 🚨 CRITICAL: This line mounts your local source code into the container.
+      # Ensure the path on the host side (left) is correct.
+      - ./admin-frontend:/app
+
+      # 🚨 CRITICAL: Anonymous volumes to prevent host's files from overwriting container's dependencies.
+      - /app/node_modules
+      - /app/.next
+
+    environment:
+      # These are safety checks, but the next.config.mjs setting is usually more reliable.
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+
+  taaskr-frontend:
+    build:
+      context: ./taaskr-frontend
+    container_name: taaskr-nextjs
+    ports:
+      - "3002:3002"
+    volumes:
+      # 🚨 CRITICAL: This line mounts your local source code into the container.
+      # Ensure the path on the host side (left) is correct.
+      - ./taaskr-frontend:/app
+      # 🚨 CRITICAL: Anonymous volumes to prevent host's files from overwriting container's dependencies.
+      - /app/node_modules
+      - /app/.next
+
+    environment:
+      # These are safety checks, but the next.config.mjs setting is usually more reliable.
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+
+volumes:
+  postgres_data:

@@ -1,0 +1,4 @@
+docker compose exec backend python manage.py startapp bookings_app
+
+chat gpt api chat name is - serializer design tips
+grok - daytaask ui/ux correction chat 

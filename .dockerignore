@@ -1,0 +1,12 @@
+# .dockerignore
+venv/
+__pycache__/
+*.pyc
+.env
+.git
+.gitignore
+README.md
+Dockerfile
+# Node stuff (if any in backend folder)
+node_modules/
+npm-debug.log

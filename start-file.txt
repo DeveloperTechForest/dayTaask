@@ -1,0 +1,56 @@
+#  Open your browser:
+        http://localhost:3000 → Your Next.js app
+        http://localhost:8000 → Django welcome page (or your API)
+        http://localhost:8000/admin → Django admin (create a superuser if needed)
+
+#  Create a superuser (optional, one time):
+
+        docker-compose exec backend python manage.py createsuperuser
+
+#  Your daily commands (bookmark these):
+
+        # Start everything (normal mode)
+        docker-compose up
+
+        # Start in background
+        docker-compose up -d
+
+        # Stop everything
+        docker-compose down
+
+        # Full clean restart (when you change code/structure)
+        docker-compose down --remove-orphans && docker-compose up
+
+
+
+
+  Complete inspection and diagnosis,
+  Professional repair work,
+  Quality parts replacement,
+  Post-service warranty,
+  Cleanup after work
+
+
+
+
+ {
+            "id": 2,
+            "category": 1,
+            "name": "CCTV Full Installation",
+            "short_description": "test1",
+            "description": "Complete House Wiring  Complete inspection and diagnosis,\r\n  Professional repair work,\r\n  Quality parts replacement,\r\n  Post-service warranty,\r\n  Cleanup after work",
+            "base_price": "1000.00",
+            "price_unit": "fixed",
+            "duration_minutes": 60,
+            "image": "http://localhost:8000/media/services/images/cctv-1_F0y1Gy1.jpg",
+            "warranty_days": 10,
+            "addons": [],
+            "is_active": true,
+            "whats_included": [
+                "Complete inspection and diagnosis",
+                "Professional repair work",
+                "Quality parts replacement",
+                "Post-service warranty",
+                "Cleanup after work"
+            ]
+        }
