@@ -136,7 +136,7 @@ export function AuthProvider({ children }) {
         body: JSON.stringify({ code }),
       });
 
-      // console.log("Google login response data:", data);
+      console.log("Google login response data:", data);
       if (!data || data.error) {
         setAuthLoading(false);
         return { ok: false, error: data };

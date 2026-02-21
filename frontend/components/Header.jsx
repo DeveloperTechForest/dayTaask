@@ -1,5 +1,4 @@
 // components/Header.jsx
-
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -46,7 +45,7 @@ export default function Header() {
     setMobileMenuOpen(false);
   };
 
-  console.log("Auth state in Header:", { user, loading });
+  // console.log("Auth state in Header:", { user, loading });
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 shadow-sm transition-shadow duration-300">
@@ -124,7 +123,7 @@ export default function Header() {
                   onClick={() => setProfileMenuOpen(!profileMenuOpen)}
                   className="flex items-center gap-2 border border-gray-200 rounded-lg hover:bg-gray-100 transition-all cursor-pointer"
                 >
-                  <Image
+                  <img
                     src={user.profile_image || "/icons/user.png"}
                     alt="Profile"
                     width={44}

@@ -8,7 +8,7 @@ from users_app.models.user import User
 from users_app.serializers.customer.profile_serializer import (
     ProfileReadSerializer,
     ProfileUpdateSerializer,
-    AvatarUploadSerializer
+    AvatarUploadSerializer,
 )
 
 
@@ -16,7 +16,11 @@ class ProfileView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        serializer = ProfileReadSerializer(request.user)
+        serializer = ProfileReadSerializer(
+            request.user,
+            # ← this line is usually missing
+            context={'request': request}
+        )
         return Response(serializer.data)
 
     def patch(self, request):
@@ -26,8 +30,8 @@ class ProfileView(APIView):
 
         if serializer.is_valid():
             serializer.save()
+            # Return updated profile
             return Response(ProfileReadSerializer(user).data)
-
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -41,13 +45,16 @@ class AvatarUploadView(APIView):
             user, data=request.data, partial=True)
 
         if serializer.is_valid():
-            serializer.save()
+            serializer.save()  # django-cleanup deletes old file automatically
             return Response({
-                "message": "Profile picture updated",
+                "message": "Profile picture updated successfully",
                 "profile_image": user.profile_image.url if user.profile_image else None
             }, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def patch(self, request):
+        return self.post(request)  # Handle PATCH same as POST for simplicity
 
 
 class ChangePasswordView(APIView):
@@ -60,13 +67,13 @@ class ChangePasswordView(APIView):
 
         if not old_password or not new_password:
             return Response(
-                {"error": "Both old_password and new_password are required"},
+                {"detail": "Both old_password and new_password are required"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         if not user.check_password(old_password):
             return Response(
-                {"old_password": "Wrong current password"},
+                {"old_password": "Current password is incorrect"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 

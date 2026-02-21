@@ -1,12 +1,12 @@
+# auth_app/views/google_auth.py
 import json
 import requests
 
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
-
+from users_app.models.role import Role
 from rest_framework_simplejwt.tokens import RefreshToken
-
 from users_app.models import User
 from users_app.models.role import UserRole
 from users_app.utils.rbac import get_user_permissions
@@ -94,10 +94,20 @@ def google_callback(request):
         email=email,
         defaults={
             "full_name": name,
-            "profile_image": picture,
             "email_verified": True,
         }
     )
+
+    # Assign customer role if new user
+    if created:
+        try:
+            customer_role = Role.objects.get(name="customer")
+            UserRole.objects.get_or_create(user=user, role=customer_role)
+        except Role.DoesNotExist:
+            return JsonResponse(
+                {"error": "Customer role not configured in system"},
+                status=500
+            )
 
     # --------------------------------------------------
     # 4️⃣ Generate JWT
@@ -120,7 +130,7 @@ def google_callback(request):
             "id": user.id,
             "email": user.email,
             "name": user.full_name,
-            "image": user.profile_image,
+            "image": user.profile_image.url if user.profile_image else None,
             "new_user": created,
             "roles": roles,
             "permissions": permissions,

@@ -127,25 +127,25 @@ export default function Home() {
       <Header />
 
       {/* Hero – Customer focused */}
-      <section className="relative bg-gradient-to-br from-gray-900 to-black overflow-hidden">
-        <div className="absolute inset-0 opacity-40">
+      <section className="relative bg-gradient-to-br from-gray-900 to-black overflow-hidden h-screen">
+        <div className="absolute inset-0 opacity-90">
           <img
-            src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1920&q=80"
+            src="./bg/hero1.png"
             alt="Happy home"
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover object-top"
           />
         </div>
 
-        <div className="relative container mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32">
+        <div className="absolute bottom-0 container mx-auto px-4 sm:px-6 lg:px-8 py-5 lg:py-5">
           <div className="max-w-4xl mx-auto text-center space-y-8">
-            <h1 className="font-heading font-extrabold text-3xl sm:text-4xl lg:text-5xl text-white tracking-tight">
+            {/* <h1 className="font-heading font-extrabold text-3xl sm:text-4xl lg:text-5xl text-white tracking-tight">
               Your Home, <span className="text-yellow-400">Hassle-Free</span>
             </h1>
 
             <p className="text-xl sm:text-2xl text-white/90 font-light max-w-3xl mx-auto">
               Verified professionals for cleaning, repairs, beauty & more —
               booked in minutes
-            </p>
+            </p> */}
 
             <div className="flex flex-col sm:flex-row gap-4 max-w-3xl mx-auto pt-6">
               <div className="relative flex-1">

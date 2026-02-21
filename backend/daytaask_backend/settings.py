@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     'support_app',
     'notifications_app',
     'logs_app',
+    'django_cleanup.apps.CleanupConfig',
 ]
 
 MIDDLEWARE = [
@@ -163,6 +164,28 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "static"
 
+
+# Redis configuration
+REDIS_HOST = "redis_broker"  # ← service name in docker-compose
+REDIS_PORT = 6379
+REDIS_DB = 0
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    }
+}
+
+# Optional: shorter timeout for OTPs
+OTP_EXPIRY_SECONDS = 300  # 5 minutes
+OTP_MAX_ATTEMPTS = 5
+OTP_COOLDOWN_SECONDS = 300  # 5 min cooldown after too many attempts
+
+
 # Celery - Super simple
 CELERY_BROKER_URL = "redis://redis:6379/0"
 CELERY_RESULT_BACKEND = "redis://redis:6379/0"
@@ -186,17 +209,6 @@ REST_FRAMEWORK = {
 
 AUTH_USER_MODEL = 'users_app.User'
 # Django cache / redis (for OTP)
-# settings.py
-
-CACHES = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://redis_broker:6379/0",
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-        }
-    }
-}
 
 OTP_EXPIRY = 300  # 5 min
 
@@ -241,3 +253,20 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 RAZORPAY_KEY_ID = "rzp_test_xxxxxxxxx"
 RAZORPAY_KEY_SECRET = "xxxxxxxxxxxx"
 RAZORPAY_WEBHOOK_SECRET = "your_webhook_secret"
+
+
+# email Setup
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+
+EMAIL_HOST_USER = "tfsrochak@gmail.com"           # your real Gmail address
+# ← the App Password (not your normal password!)
+EMAIL_HOST_PASSWORD = "cfhr ezrt rgzq tcib"
+
+# Optional – better sender name
+DEFAULT_FROM_EMAIL = "DayTaask Verification <tfsrochak@gmail.com>"
+SERVER_EMAIL = EMAIL_HOST_USER

@@ -2,3 +2,15 @@ docker compose exec backend python manage.py startapp bookings_app
 
 chat gpt api chat name is - serializer design tips
 grok - daytaask ui/ux correction chat 
+
+
+
+from django.core.mail import send_mail
+
+send_mail(
+    subject="Test OTP from DayTaask",
+    message="Your verification code is 123456. Valid for 5 minutes.",
+    from_email="tfsrochak@gmail.com",               # ← change to your real Gmail
+    recipient_list=["developertechforest@gmail.com"],            # ← change to an email you can check
+    fail_silently=False,
+)

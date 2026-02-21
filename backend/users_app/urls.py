@@ -15,6 +15,10 @@ from users_app.views.permission import PermissionViewSet
 from users_app.views.assignments import AssignPermissionToRole
 from users_app.views.admin.customer_viewset import AdminCustomerViewSet
 from users_app.views.admin.customer_address_viewset import AdminCustomerAddressViewSet
+from users_app.views.verification_views import (
+    SendEmailOTPView, VerifyEmailOTPView,
+    SendPhoneOTPView, VerifyPhoneOTPView,
+)
 
 router = DefaultRouter()
 router.register(r"roles", RoleViewSet, basename="role")
@@ -50,10 +54,22 @@ urlpatterns = [
     ),
 
     # customer profile apis
-    path("customer/me/", ProfileView.as_view(), name="profile"),
-    path("customer/me/avatar/", AvatarUploadView.as_view(), name="upload-avatar"),
+    path("customer/me/", ProfileView.as_view(), name="customer-profile"),
+    path("customer/me/avatar/", AvatarUploadView.as_view(),
+         name="customer-avatar-upload"),
     path("customer/me/change-password/",
-         ChangePasswordView.as_view(), name="change-password"),
+         ChangePasswordView.as_view(), name="customer-change-password"),
+
+
+    # otp urls
+    path("customer/send-email-otp/",
+         SendEmailOTPView.as_view(), name="send-email-otp"),
+    path("customer/verify-email-otp/",
+         VerifyEmailOTPView.as_view(), name="verify-email-otp"),
+    path("customer/send-phone-otp/",
+         SendPhoneOTPView.as_view(), name="send-phone-otp"),
+    path("customer/verify-phone-otp/",
+         VerifyPhoneOTPView.as_view(), name="verify-phone-otp"),
 
     path("", include(router.urls)),
 

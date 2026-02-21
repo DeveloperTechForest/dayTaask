@@ -206,7 +206,7 @@ export default function Dashboard() {
               {user.profile_image ? (
                 <img
                   src={user.profile_image}
-                  className="w-14 h-14 rounded-full"
+                  className="w-14 h-14 rounded-full object-cover"
                 />
               ) : (
                 <User className="w-14 h-14" />

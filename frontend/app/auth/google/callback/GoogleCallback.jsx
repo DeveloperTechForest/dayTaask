@@ -25,10 +25,10 @@ export default function GoogleCallback() {
     if (processing) return;
     setProcessing(true);
 
-    // console.log("Processing Google login with code:", code);
+    console.log("Processing Google login with code:", code);
     const processGoogleLogin = async () => {
       const result = await loginWithGoogle(code);
-
+      console.log("Google login result:", result);
       if (result?.ok) {
         router.push("/");
       } else {

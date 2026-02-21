@@ -19,7 +19,12 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     # Profile
     full_name = models.CharField(max_length=255, null=True, blank=True)
-    profile_image = models.URLField(null=True, blank=True)
+    profile_image = models.ImageField(
+        upload_to='profile_images/%Y/%m/%d/',    # or 'profile_images/'
+        null=True,
+        blank=True,
+        default=None,           # better than empty string for images
+    )
 
     # Admin flags
     is_active = models.BooleanField(default=True)
