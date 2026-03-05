@@ -311,39 +311,6 @@ export default function Payment() {
                   </div>
                 </label>
 
-                {/* Wallet */}
-                <label
-                  className={`block p-6 rounded-xl border-2 cursor-pointer transition-all ${
-                    paymentMethod === "wallet"
-                      ? "border-amber-500 bg-amber-50 shadow-md"
-                      : "border-gray-200 hover:border-amber-400"
-                  }`}
-                >
-                  <div className="flex items-center gap-4">
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="wallet"
-                      checked={paymentMethod === "wallet"}
-                      onChange={() => setPaymentMethod("wallet")}
-                      className="w-5 h-5 text-amber-600"
-                    />
-                    <div className="flex items-center gap-4 flex-1">
-                      <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center">
-                        <Wallet className="w-6 h-6 text-amber-600" />
-                      </div>
-                      <div>
-                        <p className="font-bold text-gray-900">
-                          DayTaask Wallet
-                        </p>
-                        <p className="text-sm text-green-600 font-medium">
-                          Available Balance: ₹1,250
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </label>
-
                 {/* Cash on Delivery */}
                 <label
                   className={`block p-6 rounded-xl border-2 cursor-pointer transition-all ${

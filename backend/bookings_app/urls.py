@@ -4,6 +4,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
 # Import all relevant ViewSets
+from bookings_app.views.customer.customer_dashboard_view import CustomerDashboardAPIView
 from bookings_app.views.customer.customer_booking_viewset import CustomerBookingViewSet
 from bookings_app.views.admin.booking_viewset import AdminBookingViewSet
 from bookings_app.views.admin.assignment_viewset import AdminAssignmentViewSet
@@ -156,5 +157,7 @@ router.register(
 
 # Final URL patterns — includes all the router-generated paths
 urlpatterns = [
+    path("dashboard/", CustomerDashboardAPIView.as_view(),
+         name="customer-dashboard"),
     path("", include(router.urls)),
 ]
