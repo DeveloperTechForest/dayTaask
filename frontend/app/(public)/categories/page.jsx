@@ -4,6 +4,7 @@ import Header from "@/components/Header";
 import CategoryCard from "@/components/CategoryCard";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { apiFetch } from "@/utils/api";
 
 export default function CategoriesPage() {
   const router = useRouter();
@@ -12,10 +13,11 @@ export default function CategoriesPage() {
   useEffect(() => {
     async function loadCategories() {
       try {
-        const res = await fetch(
-          "http://localhost:8000/api/services/categories/"
-        );
-        const data = await res.json();
+        const data = await apiFetch("/api/services/categories/");
+        if (data?.error) {
+          console.error("API error:", data);
+          return;
+        }
         setCategories(data);
       } catch (error) {
         console.error("API error:", error);

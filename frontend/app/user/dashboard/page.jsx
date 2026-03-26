@@ -66,6 +66,7 @@ export default function Dashboard() {
     fetchDashboard();
   }, [user, router]);
 
+
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center text-xl">
@@ -96,6 +97,7 @@ export default function Dashboard() {
   // Choose which bookings to show based on tab
   const displayedBookings =
     activeTab === "active" ? activeBookings : pastBookings;
+
 
   return (
     <div className="min-h-screen bg-light-bg">
@@ -160,6 +162,35 @@ export default function Dashboard() {
               </div>
               <div className="text-4xl">💰</div>
             </div>
+          </div>
+        </div>
+
+        {/* Quote Requests Shortcuts */}
+        <div className="bg-card rounded-2xl shadow border border-border mb-8">
+          <div className="border-b border-border px-5 py-4">
+            <h2 className="text-xl font-bold text-foreground">
+              Quote Requests
+            </h2>
+          </div>
+          <div className="p-5 flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={() => router.push("/user/quotes/active")}
+              className="px-5 py-3 bg-yellow-500 text-white font-semibold rounded-xl hover:bg-yellow-600"
+            >
+              View Active Quotes
+            </button>
+            <button
+              onClick={() => router.push("/user/quotes/past")}
+              className="px-5 py-3 bg-gray-100 text-foreground font-semibold rounded-xl hover:bg-gray-200"
+            >
+              View Past Quotes
+            </button>
+            <button
+              onClick={() => router.push("/user/quote/quote-request")}
+              className="px-5 py-3 border border-border text-foreground font-semibold rounded-xl hover:bg-gray-50"
+            >
+              Request New Quote
+            </button>
           </div>
         </div>
 

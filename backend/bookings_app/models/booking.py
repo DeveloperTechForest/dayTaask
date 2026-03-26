@@ -58,9 +58,9 @@ class Booking(models.Model):
         max_length=30,
         choices=[
             ("unassigned", "Unassigned"),
+            ("requested", "Requested"),
+            ("partially_assigned", "Partially Assigned"),
             ("assigned", "Assigned"),
-            ("declined", "Declined"),
-            ("auto_assign_pending", "Auto Assign Pending"),
             ("failed", "Failed"),
         ],
         default="unassigned"
@@ -98,6 +98,15 @@ class Booking(models.Model):
     )
 
     location_notes = models.TextField(blank=True)
+
+    # OTPs (generated on-demand when customer views)
+    start_otp = models.CharField(max_length=6, null=True, blank=True)
+    completion_otp = models.CharField(max_length=6, null=True, blank=True)
+
+    # Service lifecycle timestamps
+    started_at = models.DateTimeField(null=True, blank=True)
+    completion_requested_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
 

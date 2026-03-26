@@ -57,6 +57,7 @@ class QuoteRequest(models.Model):
             ("accepted", "Accepted"),
             ("rejected", "Rejected"),
             ("expired", "Expired"),
+            ("cancelled", "Cancelled"),
         ],
         default="open"
     )

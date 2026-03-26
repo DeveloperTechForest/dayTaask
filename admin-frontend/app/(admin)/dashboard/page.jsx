@@ -1,4 +1,4 @@
-// app/dashboard/page.jsx
+﻿// app/dashboard/page.jsx
 "use client";
 
 import {
@@ -15,11 +15,14 @@ import {
   MoreVertical,
   ChevronDown,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { apiFetch } from "@/utils/api";
 
 export default function Dashboard() {
   const [dateRange, setDateRange] = useState("Last 7 days");
   const [actionOpen, setActionOpen] = useState(false);
+  const [recentAssignedQuotes, setRecentAssignedQuotes] = useState([]);
+  const [quotesLoading, setQuotesLoading] = useState(false);
 
   const stats = [
     {
@@ -45,7 +48,7 @@ export default function Dashboard() {
     },
     {
       label: "Revenue (7d)",
-      value: "₹4,52,340",
+      value: "â¹4,52,340",
       change: "+18.3% from last week",
       positive: true,
       icon: DollarSign,
@@ -70,7 +73,7 @@ export default function Dashboard() {
     },
     {
       label: "Pending Payouts",
-      value: "₹1,24,500",
+      value: "â¹1,24,500",
       change: "12 taaskrs",
       icon: CreditCard,
     },
@@ -91,6 +94,26 @@ export default function Dashboard() {
     { text: "Mike Smith completed job #BK-4515", time: "18 min ago" },
     { text: "New booking #BK-4520 created", time: "25 min ago" },
   ];
+
+  useEffect(() => {
+    const loadAssignedQuotes = async () => {
+      setQuotesLoading(true);
+      try {
+        const data = await apiFetch("/api/bookings/admin/quote-requests/?page=1");
+        const list = Array.isArray(data?.results) ? data.results : data || [];
+        const assigned = list.filter(
+          (q) => q.custom_service || q.status === "quoted"
+        );
+        setRecentAssignedQuotes(assigned.slice(0, 5));
+      } catch (err) {
+        setRecentAssignedQuotes([]);
+      } finally {
+        setQuotesLoading(false);
+      }
+    };
+
+    loadAssignedQuotes();
+  }, []);
 
   return (
     <div className="space-y-7">
@@ -361,27 +384,42 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Recent Activity */}
+        {/* Recent Assigned Quotes */}
         <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
           <div className="flex items-center justify-between mb-5">
             <h3 className="text-lg font-semibold text-slate-900">
-              Recent Activity
+              Recent Assigned Quotes
             </h3>
             <button className="text-orange-500 text-sm font-semibold hover:text-orange-600 transition">
-              View all →
+              View all
             </button>
           </div>
-          <div className="space-y-5">
-            {activity.map((a, i) => (
-              <div key={i} className="flex gap-4">
-                <div className="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-slate-800">{a.text}</p>
-                  <p className="text-xs text-slate-500 mt-0.5">{a.time}</p>
+          {quotesLoading ? (
+            <div className="flex justify-center py-10">
+              <div className="w-8 h-8 border-4 border-orange-200 border-t-orange-500 rounded-full animate-spin" />
+            </div>
+          ) : recentAssignedQuotes.length === 0 ? (
+            <p className="text-sm text-slate-500">
+              No assigned quotes yet.
+            </p>
+          ) : (
+            <div className="space-y-5">
+              {recentAssignedQuotes.map((q) => (
+                <div key={q.id} className="flex gap-4">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-slate-800">
+                      Quote {q.quote_code} assigned to{" "}
+                      {q.service_name || "Custom Service"}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      {q.customer_name || "Customer"}  {q.status || "quoted"}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

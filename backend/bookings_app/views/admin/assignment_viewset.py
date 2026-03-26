@@ -8,6 +8,7 @@ from django.utils import timezone
 from rest_framework.permissions import IsAuthenticated
 
 from bookings_app.models import AssignmentLog, Booking
+from bookings_app.serializers.utils.assignment_utils import recalculate_assignment_status
 from bookings_app.serializers.admin.assignment_list_serializer import (
     AssignmentListSerializer,
 )
@@ -66,8 +67,7 @@ class AdminAssignmentViewSet(ReadOnlyModelViewSet):
         log.status = "cancelled"
         log.save(update_fields=["status"])
 
-        # Optional: check if booking still needs more taaskrs
-        # If needed, you can update booking.assignment_status here
+        recalculate_assignment_status(log.booking)
 
         return Response({
             "detail": "Assignment request cancelled",

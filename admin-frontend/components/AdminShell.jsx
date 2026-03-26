@@ -233,42 +233,42 @@ const navItems = [
       },
     ],
   },
-  {
-    name: "Notifications",
-    href: "/notifications",
-    icon: Bell,
-    requiredPermissions: ["notification.view"],
-  },
+  // {
+  //   name: "Notifications",
+  //   href: "/notifications",
+  //   icon: Bell,
+  //   requiredPermissions: ["notification.view"],
+  // },
   {
     name: "Reports",
     href: "/reports",
     icon: BarChart3,
     requiredPermissions: ["dashboard.stats"],
   },
-  {
-    name: "Settings",
-    href: "/settings",
-    icon: Settings,
-    requiredPermissions: ["dashboard.view"],
-  },
-  {
-    name: "Audit Logs",
-    href: "/audit-logs",
-    icon: Activity,
-    requiredPermissions: ["logs.view"],
-  },
-  {
-    name: "System Health",
-    href: "/system",
-    icon: Server,
-    requiredPermissions: ["dashboard.analytics"],
-  },
-  {
-    name: "CMS",
-    href: "/cms",
-    icon: FileText,
-    requiredPermissions: ["dashboard.view"],
-  },
+  // {
+  //   name: "Settings",
+  //   href: "/settings",
+  //   icon: Settings,
+  //   requiredPermissions: ["dashboard.view"],
+  // },
+  // {
+  //   name: "Audit Logs",
+  //   href: "/audit-logs",
+  //   icon: Activity,
+  //   requiredPermissions: ["logs.view"],
+  // },
+  // {
+  //   name: "System Health",
+  //   href: "/system",
+  //   icon: Server,
+  //   requiredPermissions: ["dashboard.analytics"],
+  // },
+  // {
+  //   name: "CMS",
+  //   href: "/cms",
+  //   icon: FileText,
+  //   requiredPermissions: ["dashboard.view"],
+  // },
 ];
 
 function cls(...classes) {

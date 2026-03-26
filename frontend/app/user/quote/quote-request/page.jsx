@@ -1,9 +1,10 @@
 // app/quote-request/page.jsx
 "use client";
 
-import { useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
+import { apiFetch } from "@/utils/api";
 import {
   Upload,
   X,
@@ -18,75 +19,71 @@ import {
 
 export default function QuoteRequest() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [problem, setProblem] = useState("");
   const [preferredDate, setPreferredDate] = useState("");
   const [preferredTime, setPreferredTime] = useState("");
   const [images, setImages] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
   // New: Category & Service Selection
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedService, setSelectedService] = useState("");
+  const [categories, setCategories] = useState([]);
+  const [services, setServices] = useState([]);
+  const [loadingServices, setLoadingServices] = useState(false);
 
-  // Service Data
-  const serviceCategories = {
-    electrical: {
-      name: "Electrical",
-      services: [
-        "Complete House Wiring",
-        "Switch & Socket Installation",
-        "Ceiling Fan Installation",
-        "Inverter/UPS Installation",
-        "MCB & Wiring Repair",
-        "Emergency Electrical Repair",
-      ],
-    },
-    plumbing: {
-      name: "Plumbing",
-      services: [
-        "Tap Repair & Replacement",
-        "Pipe Leakage Repair",
-        "Bathroom Fitting Installation",
-        "Water Tank Cleaning",
-        "Motor Pump Repair",
-        "Geyser Installation",
-      ],
-    },
-    cleaning: {
-      name: "Cleaning & Pest Control",
-      services: [
-        "Full Home Deep Cleaning",
-        "Sofa & Carpet Cleaning",
-        "Bathroom Deep Cleaning",
-        "Kitchen Deep Cleaning",
-        "Cockroach Pest Control",
-        "Termite Control",
-      ],
-    },
-    appliances: {
-      name: "Appliance Repair",
-      services: [
-        "AC Service & Repair",
-        "Washing Machine Repair",
-        "Refrigerator Repair",
-        "Microwave Repair",
-        "RO Water Purifier Service",
-        "Geyser Repair",
-      ],
-    },
-  };
+  const prefillCategoryId = searchParams.get("categoryId") || "";
+  const prefillServiceId = searchParams.get("serviceId") || "";
+
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const data = await apiFetch("/api/services/categories/");
+        const list = Array.isArray(data?.results) ? data.results : data || [];
+        setCategories(list);
+      } catch (err) {
+        setError("Failed to load categories");
+      }
+    };
+    loadCategories();
+  }, []);
 
   // Get available services based on selected category
   const availableServices = useMemo(() => {
-    if (!selectedCategory || !serviceCategories[selectedCategory]) return [];
-    return serviceCategories[selectedCategory].services;
+    return services;
+  }, [services]);
+
+  useEffect(() => {
+    if (!selectedCategory) {
+      setServices([]);
+      setSelectedService("");
+      return;
+    }
+    const loadServices = async () => {
+      try {
+        setLoadingServices(true);
+        const data = await apiFetch(
+          `/api/services/category/${selectedCategory}/services/`,
+        );
+        const list = Array.isArray(data?.results) ? data.results : data || [];
+        setServices(list);
+      } catch (err) {
+        setError("Failed to load services");
+      } finally {
+        setLoadingServices(false);
+      }
+    };
+    setSelectedService("");
+    loadServices();
   }, [selectedCategory]);
 
-  // Reset service when category changes
-  useMemo(() => {
-    setSelectedService("");
-  }, [selectedCategory]);
+  useEffect(() => {
+    if (prefillCategoryId) setSelectedCategory(prefillCategoryId);
+    if (prefillServiceId) setSelectedService(prefillServiceId);
+  }, [prefillCategoryId, prefillServiceId]);
 
   const handleImageUpload = (e) => {
     const files = Array.from(e.target.files);
@@ -104,13 +101,43 @@ export default function QuoteRequest() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!problem.trim() || !selectedCategory || !selectedService) return;
+    setError("");
+    if (!problem.trim() || !selectedCategory || !selectedService) {
+      setError("Please fill all required fields");
+      return;
+    }
 
     setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 1200));
+    try {
+      const formData = new FormData();
+      formData.append("service_category", selectedCategory);
+      formData.append("service", selectedService);
+      const selectedServiceName =
+        services.find((s) => String(s.id) === String(selectedService))?.name ||
+        "";
+      if (selectedServiceName) {
+        formData.append("service_name", selectedServiceName);
+      }
+      formData.append("problem_description", problem.trim());
+      if (preferredDate) formData.append("preferred_date", preferredDate);
+      if (preferredTime) formData.append("preferred_time_slot", preferredTime);
+      images.forEach((img) => formData.append("images", img.file));
 
-    const newQuoteId = Date.now();
-    router.push(`/user/quote/${newQuoteId}`);
+      const res = await apiFetch("/api/bookings/customer/quote-requests/", {
+        method: "POST",
+        body: formData,
+      });
+      if (res?.error) throw new Error(res.detail || "Submit failed");
+      const createdId = res?.id || res?.quote_id || res?.data?.id;
+      if (!createdId) {
+        throw new Error("Quote created but ID was not returned.");
+      }
+      router.push(`/user/quote/${createdId}`);
+    } catch (err) {
+      setError(err?.message || "Failed to submit quote request");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -151,8 +178,8 @@ export default function QuoteRequest() {
                   className="w-full px-5 py-4 bg-background border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-500 appearance-none cursor-pointer text-foreground"
                 >
                   <option value="">Select category</option>
-                  {Object.entries(serviceCategories).map(([key, cat]) => (
-                    <option key={key} value={key}>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
                       {cat.name}
                     </option>
                   ))}
@@ -176,12 +203,14 @@ export default function QuoteRequest() {
                 >
                   <option value="">
                     {selectedCategory
-                      ? "Select service"
+                      ? loadingServices
+                        ? "Loading services..."
+                        : "Select service"
                       : "First select category"}
                   </option>
                   {availableServices.map((service) => (
-                    <option key={service} value={service}>
-                      {service}
+                    <option key={service.id} value={service.id}>
+                      {service.name}
                     </option>
                   ))}
                 </select>
@@ -323,6 +352,9 @@ export default function QuoteRequest() {
               )}
             </button>
           </div>
+          {error && (
+            <p className="text-center text-red-600 text-sm">{error}</p>
+          )}
         </form>
 
         {/* Trust Indicators */}

@@ -9,10 +9,14 @@ class TaaskrAssignmentActionSerializer(serializers.Serializer):
     action = serializers.ChoiceField(choices=["accept", "reject"])
 
     def validate(self, attrs):
-        instance = self.context["instance"]  # we'll pass it via view
+        instance = self.instance
         if instance.status != "requested":
             raise serializers.ValidationError(
                 {"action": "This assignment request is no longer pending."}
+            )
+        if instance.booking.status in ["cancelled", "completed"]:
+            raise serializers.ValidationError(
+                {"action": "This booking is no longer active."}
             )
         if instance.expires_at and instance.expires_at < timezone.now():
             raise serializers.ValidationError(
@@ -24,12 +28,13 @@ class TaaskrAssignmentActionSerializer(serializers.Serializer):
         action = validated_data["action"]
         booking = instance.booking
 
-        # assume you have this
-        from bookings_app.serializers.utils.assignment_utils import accepted_taaskr_count
-
-        accepted_count = accepted_taaskr_count(booking)
+        from bookings_app.serializers.utils.assignment_utils import (
+            accepted_taaskr_count,
+            recalculate_assignment_status,
+        )
 
         if action == "accept":
+            accepted_count = accepted_taaskr_count(booking)
             if accepted_count >= booking.required_taaskrs:
                 raise serializers.ValidationError(
                     {"action": "All required taaskrs have already been assigned."}
@@ -50,8 +55,9 @@ class TaaskrAssignmentActionSerializer(serializers.Serializer):
                 status="requested"
             ).exclude(id=instance.id).update(status="expired")
 
-            booking.assignment_status = "assigned"
-            booking.status = "confirmed"  # or your logic
-            booking.save()
+            booking.status = "confirmed"
+            booking.save(update_fields=["status"])
+
+        recalculate_assignment_status(booking)
 
         return instance

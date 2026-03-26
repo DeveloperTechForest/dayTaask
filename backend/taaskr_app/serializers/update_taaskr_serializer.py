@@ -3,17 +3,36 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from taaskr_app.models.profile import TaaskrProfile
+from taaskr_app.serializers.taaskr_serializer import FlexibleListField, SingleStringListField
 
 User = get_user_model()
 
 
 class TaaskrProfileUpdateSerializer(serializers.ModelSerializer):
+    skill_tags = FlexibleListField(required=False)
+    certification = SingleStringListField(required=False)
+
     class Meta:
         model = TaaskrProfile
         fields = [
             "bio",
             "skill_tags",
             "certification",
+            "dob",
+            "bank_account_holder_name",
+            "bank_account_number",
+            "bank_ifsc_code",
+            "bank_name",
+            "bank_upi_id",
+            "government_id_image",
+            "address_proof_image",
+            "profile_photo_image",
+            "onboarding_completed",
+            "verified",
+            "verification_status",
+            "verification_note",
+            "documents_verified",
+            "bank_verified",
         ]
 
 
@@ -32,6 +51,7 @@ class UpdateTaaskrSerializer(serializers.ModelSerializer):
             "full_name",
             "phone",
             "password",
+            "profile_image",
             "profile",
         ]
 

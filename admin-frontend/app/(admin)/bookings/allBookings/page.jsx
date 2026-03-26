@@ -44,6 +44,7 @@ const getStatusConfig = (status) => {
     confirmed: { badge: "bg-blue-100 text-blue-700", label: "Confirmed" },
     pending: { badge: "bg-yellow-100 text-yellow-700", label: "Pending" },
     cancelled: { badge: "bg-red-100 text-red-700", label: "Cancelled" },
+    expired: { badge: "bg-slate-100 text-slate-700", label: "Expired" },
   };
   return (
     map[status?.toLowerCase()] || {
@@ -67,6 +68,7 @@ export default function AllBookings() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [assignmentFilter, setAssignmentFilter] = useState("all");
 
   const [openDropdownId, setOpenDropdownId] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -87,6 +89,8 @@ export default function AllBookings() {
     params.set("page", currentPage.toString());
     if (searchTerm.trim()) params.set("search", searchTerm.trim());
     if (statusFilter !== "all") params.set("status", statusFilter);
+    if (assignmentFilter !== "all")
+      params.set("assignment_status", assignmentFilter);
     return params.toString();
   };
 
@@ -120,7 +124,7 @@ export default function AllBookings() {
   useEffect(() => {
     setCurrentPage(1);
     fetchBookings();
-  }, [searchTerm, statusFilter]);
+  }, [searchTerm, statusFilter, assignmentFilter]);
 
   const toggleDropdown = (id, e) => {
     e.stopPropagation();
@@ -252,6 +256,21 @@ export default function AllBookings() {
               </select>
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
             </div>
+            <div className="relative">
+              <select
+                value={assignmentFilter}
+                onChange={(e) => setAssignmentFilter(e.target.value)}
+                className="appearance-none px-4 py-3 pr-10 border border-slate-300 rounded-xl bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+              >
+                <option value="all">All Assignment</option>
+                <option value="unassigned">Unassigned</option>
+                <option value="requested">Requested</option>
+                <option value="partially_assigned">Partially Assigned</option>
+                <option value="assigned">Assigned</option>
+                <option value="failed">Failed</option>
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+            </div>
             <button className="flex items-center gap-2 px-4 py-3 border border-slate-300 hover:bg-slate-50 rounded-xl transition font-medium">
               <Filter className="w-4 h-4" />
               More Filters
@@ -309,15 +328,28 @@ export default function AllBookings() {
               ) : (
                 bookings.map((b) => {
                   const statusConfig = getStatusConfig(b.status);
-                  const urgent = isUrgent(b.is_urgent);
+                  const urgent = Boolean(b.is_urgent);
                   const accepted = b.accepted_taaskrs || 0;
                   const required = b.required_taaskrs || 1;
+                  const isPast =
+                    b.scheduled_at &&
+                    new Date(b.scheduled_at).getTime() < Date.now();
+                  const isActiveLike = ["pending", "confirmed"].includes(
+                    (b.status || "").toLowerCase(),
+                  );
+                  const isExpired = isPast && isActiveLike;
                   const needsAttention =
-                    b.assignment_status === "unassigned" || accepted < required;
+                    b.needs_assignment ||
+                    b.assignment_status === "unassigned" ||
+                    accepted < required;
                   const isOpen = openDropdownId === b.id;
-                  const rowClass = needsAttention
+                  const rowClass = isExpired
+                    ? "bg-slate-50 border-l-4 border-slate-400"
+                    : needsAttention
                     ? "bg-red-50 border-l-4 border-red-500"
                     : "hover:bg-slate-50/70";
+                  const displayStatus = isExpired ? "expired" : b.status;
+                  const displayStatusConfig = getStatusConfig(displayStatus);
 
                   return (
                     <tr
@@ -356,6 +388,9 @@ export default function AllBookings() {
                         <span className="font-medium">
                           {accepted}/{required} Assigned
                         </span>
+                        <div className="text-xs text-slate-500 capitalize">
+                          {b.assignment_status || "â€”"}
+                        </div>
                         {b.taaskr_name && (
                           <div className="text-xs text-slate-500">
                             {b.taaskr_name}
@@ -364,10 +399,15 @@ export default function AllBookings() {
                       </td>
                       <td className="px-6 py-5 text-center">
                         <span
-                          className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold ${statusConfig.badge}`}
+                          className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold ${displayStatusConfig.badge}`}
                         >
-                          {statusConfig.label}
+                          {displayStatusConfig.label}
                         </span>
+                        {isExpired && (
+                          <div className="text-xs text-slate-500 mt-1">
+                            Past scheduled time
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-5 text-right">
                         <div className="flex items-center justify-end gap-1.5 font-semibold text-slate-900">

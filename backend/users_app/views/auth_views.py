@@ -1,3 +1,4 @@
+# users_app/views/auth_views.py
 from django.conf import settings
 from django.contrib.auth import authenticate
 from rest_framework.views import APIView
@@ -44,6 +45,8 @@ class RegisterView(APIView):
             secure=settings.AUTH_COOKIE_SECURE,
             samesite=settings.AUTH_COOKIE_SAMESITE,
             max_age=settings.AUTH_COOKIE_MAX_AGE,
+            path="/",
+            domain=settings.AUTH_COOKIE_DOMAIN,
         )
 
         response.set_cookie(
@@ -53,6 +56,8 @@ class RegisterView(APIView):
             secure=settings.AUTH_COOKIE_SECURE,
             samesite=settings.AUTH_COOKIE_SAMESITE,
             max_age=settings.AUTH_REFRESH_COOKIE_MAX_AGE,
+            path="/",
+            domain=settings.AUTH_COOKIE_DOMAIN,
         )
 
 
@@ -66,10 +71,21 @@ class LoginView(APIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        user = authenticate(
-            email=serializer.validated_data["email"],
-            password=serializer.validated_data["password"],
-        )
+        email = serializer.validated_data.get("email")
+        phone = serializer.validated_data.get("phone")
+        password = serializer.validated_data["password"]
+
+        user = None
+        if email:
+            user = authenticate(email=email, password=password)
+        elif phone:
+            try:
+                from users_app.models.user import User
+                candidate = User.objects.filter(phone=phone).first()
+                if candidate and candidate.check_password(password):
+                    user = candidate
+            except Exception:
+                user = None
 
         if not user:
             return Response({"error": "Invalid credentials"}, status=401)
@@ -100,6 +116,8 @@ class LoginView(APIView):
             secure=settings.AUTH_COOKIE_SECURE,
             samesite=settings.AUTH_COOKIE_SAMESITE,
             max_age=settings.AUTH_COOKIE_MAX_AGE,
+            path="/",
+            domain=settings.AUTH_COOKIE_DOMAIN,
         )
 
         response.set_cookie(
@@ -109,6 +127,8 @@ class LoginView(APIView):
             secure=settings.AUTH_COOKIE_SECURE,
             samesite=settings.AUTH_COOKIE_SAMESITE,
             max_age=settings.AUTH_REFRESH_COOKIE_MAX_AGE,
+            path="/",
+            domain=settings.AUTH_COOKIE_DOMAIN,
         )
 
         return response
@@ -119,11 +139,37 @@ class LoginView(APIView):
 # ==========================
 class LogoutView(APIView):
     def post(self, request):
+        user = request.user if request.user.is_authenticated else None
+        if user:
+            try:
+                from taaskr_app.models.availability import Availability
+                availability = Availability.objects.filter(
+                    taaskr=user
+                ).order_by("-updated_at").first()
+                if availability:
+                    availability.is_available = False
+                    availability.save(
+                        update_fields=["is_available", "updated_at"])
+                else:
+                    Availability.objects.create(
+                        taaskr=user,
+                        is_available=False,
+                    )
+            except Exception:
+                pass
+
         response = Response({"message": "Logged out"}, status=200)
 
-        response.delete_cookie(settings.AUTH_COOKIE,
-                               samesite=settings.AUTH_COOKIE_SAMESITE)
-        response.delete_cookie(settings.AUTH_COOKIE_REFRESH,
-                               samesite=settings.AUTH_COOKIE_SAMESITE)
+        response.delete_cookie(
+            settings.AUTH_COOKIE,
+            domain=settings.AUTH_COOKIE_DOMAIN,
+            path="/"
+        )
+
+        response.delete_cookie(
+            settings.AUTH_COOKIE_REFRESH,
+            domain=settings.AUTH_COOKIE_DOMAIN,
+            path="/"
+        )
 
         return response

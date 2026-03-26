@@ -40,6 +40,7 @@ const getAssignmentStatusBadge = (status) => {
       label: "Partially Assigned",
     },
     assigned: { bg: "bg-emerald-100 text-emerald-700", label: "Assigned" },
+    failed: { bg: "bg-red-100 text-red-700", label: "Failed" },
   };
   return (
     map[status] || {
@@ -68,6 +69,7 @@ const getRequestStatusBadge = (status) => {
 export default function AssignmentsPage() {
   const [bookings, setBookings] = useState([]);
   const [taaskrs, setTaaskrs] = useState([]);
+  const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [assignLoading, setAssignLoading] = useState(false);
 
@@ -125,7 +127,13 @@ export default function AssignmentsPage() {
         apiFetch("/api/taaskr/admin/taaskrs/"),
       ]);
 
-      setBookings(bookingsRes.results || bookingsRes || []);
+      const rawBookings = bookingsRes.results || bookingsRes || [];
+      const now = Date.now();
+      const validBookings = rawBookings.filter((b) => {
+        if (!b.scheduled_at) return true;
+        return new Date(b.scheduled_at).getTime() >= now;
+      });
+      setBookings(validBookings);
       setTotalCount(bookingsRes.count || 0);
       setNextUrl(bookingsRes.next || null);
       setPrevUrl(bookingsRes.previous || null);
@@ -137,6 +145,20 @@ export default function AssignmentsPage() {
       setMessage({ type: "error", text: "Failed to load data" });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchServices = async () => {
+    try {
+      const res = await apiFetch("/api/services/all-services/?page_size=200");
+      const list = Array.isArray(res?.results)
+        ? res.results
+        : Array.isArray(res)
+          ? res
+          : [];
+      setServices(list);
+    } catch {
+      setServices([]);
     }
   };
   const fetchAssignmentLogs = async (bookingId) => {
@@ -165,12 +187,20 @@ export default function AssignmentsPage() {
 
   useEffect(() => {
     fetchData();
+    fetchServices();
   }, [currentPage]);
 
   useEffect(() => {
     setCurrentPage(1);
     fetchData();
   }, [search, filter]);
+
+  const getSkillLabel = (skill) => {
+    const value = String(skill);
+    if (!/^\d+$/.test(value)) return value;
+    const match = services.find((s) => String(s.id) === value);
+    return match?.name || value;
+  };
 
   const openAssignModal = async (booking) => {
     setSelectedBooking(booking);
@@ -321,6 +351,17 @@ export default function AssignmentsPage() {
     setAcceptedTaaskrIds([]);
     setRequestedTaaskrIds([]);
     setSelectedTaaskrIds([]);
+  };
+
+  const selectAllAvailable = () => {
+    const ids = taaskrs
+      .filter(
+        (t) =>
+          !acceptedTaaskrIds.includes(t.id) &&
+          !requestedTaaskrIds.includes(t.id),
+      )
+      .map((t) => t.id);
+    setSelectedTaaskrIds(ids);
   };
 
   // Stats (defined here)
@@ -693,6 +734,18 @@ export default function AssignmentsPage() {
               Select Taaskrs (You can select multiple)
             </label>
 
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-xs text-slate-500">
+                Tip: Use select all to notify every available taaskr.
+              </p>
+              <button
+                onClick={selectAllAvailable}
+                className="px-3 py-1.5 text-xs rounded-lg border border-slate-300 hover:bg-slate-50"
+              >
+                Select All Available
+              </button>
+            </div>
+
             <div className="max-h-96 overflow-y-auto border border-slate-200 rounded-xl">
               {taaskrs.length === 0 ? (
                 <div className="p-8 text-center text-slate-500">
@@ -703,6 +756,10 @@ export default function AssignmentsPage() {
                   {taaskrs.map((t) => {
                     const isAccepted = acceptedTaaskrIds.includes(t.id);
                     const isRequested = requestedTaaskrIds.includes(t.id);
+                    const isChecked =
+                      selectedTaaskrIds.includes(t.id) ||
+                      isAccepted ||
+                      isRequested;
 
                     return (
                       <div
@@ -718,7 +775,8 @@ export default function AssignmentsPage() {
                         {/* Checkbox */}
                         <input
                           type="checkbox"
-                          checked={selectedTaaskrIds.includes(t.id)}
+                          checked={isChecked}
+                          disabled={isAccepted || isRequested}
                           onChange={() => toggleTaaskrSelection(t.id)}
                           className="mt-2 w-5 h-5"
                         />
@@ -771,7 +829,7 @@ export default function AssignmentsPage() {
                                   key={idx}
                                   className="text-xs bg-slate-100 text-slate-700 px-2 py-1 rounded"
                                 >
-                                  {skill}
+                                  {getSkillLabel(skill)}
                                 </span>
                               ))}
                             </div>

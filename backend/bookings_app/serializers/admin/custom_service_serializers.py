@@ -1,6 +1,45 @@
 # bookings_app/serializers/admin/custom_service_serializers.py
 from rest_framework import serializers
 from bookings_app.models import CustomService, QuoteRequest, Booking
+import json
+
+
+class ArrayTextListField(serializers.Field):
+    def to_representation(self, value):
+        if value is None:
+            return []
+        if isinstance(value, list):
+            return value
+        if isinstance(value, str):
+            cleaned = value.strip()
+            if not cleaned:
+                return []
+            try:
+                parsed = json.loads(cleaned)
+                if isinstance(parsed, list):
+                    return parsed
+            except json.JSONDecodeError:
+                pass
+            return [item.strip() for item in cleaned.split(",") if item.strip()]
+        return []
+
+    def to_internal_value(self, data):
+        if data in (None, ""):
+            return []
+        if isinstance(data, list):
+            return data
+        if isinstance(data, str):
+            cleaned = data.strip()
+            if not cleaned:
+                return []
+            try:
+                parsed = json.loads(cleaned)
+                if isinstance(parsed, list):
+                    return parsed
+            except json.JSONDecodeError:
+                pass
+            return [item.strip() for item in cleaned.split(",") if item.strip()]
+        raise serializers.ValidationError("Expected a list or string.")
 
 
 class AdminCustomServiceSerializer(serializers.ModelSerializer):
@@ -33,6 +72,8 @@ class AdminCustomServiceSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
 
+    whats_included = ArrayTextListField(required=False)
+
 
 class AdminCustomServiceCreateSerializer(serializers.ModelSerializer):
 
@@ -47,16 +88,24 @@ class AdminCustomServiceCreateSerializer(serializers.ModelSerializer):
             "whats_included",
             "duration_minutes",
             "warranty_days",
+            "status",
+            "is_active",
         ]
+
+    whats_included = ArrayTextListField(required=False)
 
     def create(self, validated_data):
         quote = validated_data.pop("quote_request")
         request = self.context["request"]
 
+        status = validated_data.pop("status", "sent")
+        is_active = validated_data.pop("is_active", True)
+
         custom_service = CustomService.objects.create(
             quote_request=quote,
             created_by=request.user,
-            status="draft",
+            status=status,
+            is_active=is_active,
             **validated_data
         )
 
@@ -81,6 +130,8 @@ class AdminCustomServiceUpdateSerializer(serializers.ModelSerializer):
             "status",
             "is_active",
         ]
+
+    whats_included = ArrayTextListField(required=False)
 
     def validate(self, attrs):
         instance = self.instance

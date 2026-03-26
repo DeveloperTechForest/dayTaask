@@ -145,6 +145,7 @@ def google_callback(request):
         secure=settings.AUTH_COOKIE_SECURE,
         samesite=settings.AUTH_COOKIE_SAMESITE,
         max_age=settings.AUTH_COOKIE_MAX_AGE,   # ✅ 24 hours
+        domain=settings.AUTH_COOKIE_DOMAIN,
     )
 
     # ✅ REFRESH TOKEN COOKIE (LONGER)
@@ -155,6 +156,7 @@ def google_callback(request):
         secure=settings.AUTH_COOKIE_SECURE,
         samesite=settings.AUTH_COOKIE_SAMESITE,
         max_age=settings.AUTH_REFRESH_COOKIE_MAX_AGE,  # ✅ 7 days
+        domain=settings.AUTH_COOKIE_DOMAIN,
     )
 
     return response

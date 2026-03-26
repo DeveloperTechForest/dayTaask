@@ -4,6 +4,7 @@ from rest_framework import serializers
 from django.utils import timezone
 
 from bookings_app.models import Booking, AssignmentLog
+from bookings_app.serializers.utils.assignment_utils import recalculate_assignment_status
 from users_app.models import User
 
 
@@ -39,10 +40,34 @@ class AssignTaaskrSerializer(serializers.Serializer):
 
         booking = Booking.objects.get(id=validated_data["booking_id"])
         taaskr_ids = validated_data["taaskr_ids"]
+        existing_logs = {
+            log.taaskr_id: log
+            for log in AssignmentLog.objects.filter(
+                booking=booking,
+                taaskr_id__in=taaskr_ids,
+            )
+        }
 
-        max_required = booking.required_taaskrs
+        for taaskr_id in taaskr_ids:
+            existing = existing_logs.get(taaskr_id)
+            if existing:
+                if existing.status in ["requested", "accepted"]:
+                    continue
+                existing.status = "requested"
+                existing.assigned_by = request.user
+                existing.method = "manual"
+                existing.expires_at = timezone.now() + timezone.timedelta(hours=2)
+                existing.save(
+                    update_fields=[
+                        "status",
+                        "assigned_by",
+                        "method",
+                        "expires_at",
+                        "updated_at",
+                    ]
+                )
+                continue
 
-        for taaskr_id in taaskr_ids[:max_required]:
             AssignmentLog.objects.create(
                 booking=booking,
                 taaskr_id=taaskr_id,
@@ -53,7 +78,6 @@ class AssignTaaskrSerializer(serializers.Serializer):
             )
 
         # booking stays pending until accepted
-        booking.assignment_status = "requested"
-        booking.save(update_fields=["assignment_status"])
+        recalculate_assignment_status(booking)
 
         return booking

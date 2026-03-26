@@ -2,10 +2,10 @@
 import {
   MapPin,
   Clock,
-  IndianRupee,
   Navigation,
   User,
   ChevronRight,
+  ListChecks,
 } from "lucide-react";
 
 export function JobCard({
@@ -14,7 +14,7 @@ export function JobCard({
   location,
   distance,
   dateTime,
-  earnings,
+  taskLabel,
   status,
   countdown,
   onAccept,
@@ -33,44 +33,6 @@ export function JobCard({
       } ${className}`}
       onClick={onClick}
     >
-      {/* Countdown for incoming jobs */}
-      {isIncoming && countdown !== undefined && (
-        <div className="bg-[var(--color-primary)]/10 px-4 py-2 flex items-center justify-between">
-          <span className="text-sm font-medium text-[var(--color-primary)]">
-            New Request!
-          </span>
-          <div className="flex items-center gap-2">
-            <div className="relative w-6 h-6">
-              <svg className="w-6 h-6 -rotate-90">
-                <circle
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className="text-[var(--color-primary)]/20"
-                />
-                <circle
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeDasharray="62.83"
-                  strokeDashoffset={(62.83 * (60 - countdown)) / 60}
-                  className="text-[var(--color-primary)] transition-all duration-1000"
-                />
-              </svg>
-            </div>
-            <span className="text-sm font-bold text-[var(--color-primary)]">
-              {countdown}s
-            </span>
-          </div>
-        </div>
-      )}
-
       <div className="p-4 space-y-4">
         {/* Header */}
         <div className="flex items-start justify-between">
@@ -93,6 +55,8 @@ export function JobCard({
                   ? "bg-[var(--color-primary)]/10 text-[var(--color-primary)] border-[var(--color-primary)]/20"
                   : status === "completed"
                     ? "bg-[var(--color-success)]/10 text-[var(--color-success)] border-[var(--color-success)]/20"
+                    : status === "rejected"
+                      ? "bg-red-50 text-red-600 border-red-200"
                     : "bg-gray-100 text-gray-600 border-gray-200"
             }`}
           >
@@ -118,12 +82,12 @@ export function JobCard({
           </div>
         </div>
 
-        {/* Earnings + Actions */}
+        {/* Task + Actions */}
         <div className="flex items-center justify-between pt-3 border-t border-[var(--color-divider)]">
-          <div className="flex items-center gap-1">
-            <IndianRupee className="w-5 h-5 text-[var(--color-success)]" />
-            <span className="text-xl font-bold text-[var(--color-success)]">
-              {earnings}
+          <div className="flex items-center gap-2 text-sm text-[var(--color-text)]">
+            <ListChecks className="w-4 h-4 text-[var(--color-text-light)]" />
+            <span className="font-medium">
+              {taskLabel || "View task details"}
             </span>
           </div>
 

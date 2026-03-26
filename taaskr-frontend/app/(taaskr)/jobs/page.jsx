@@ -2,154 +2,200 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { Header } from "@/components/taaskr/Header";
-import { BottomNav } from "@/components/taaskr/BottomNav";
 import { JobCard } from "@/components/taaskr/JobCard";
 import { useToast } from "@/components/taaskr/ToastProvider";
+import { apiFetch } from "@/utils/api";
 
-// Mock data (same as your original)
-const initialJobs = [
-  {
-    id: "1",
-    serviceName: "Home Deep Cleaning",
-    customerName: "Priya Sharma",
-    location: "Koramangala, Bangalore",
-    distance: "3.2 km",
-    dateTime: "Today, 2:00 PM",
-    earnings: 850,
-    status: "accepted",
-  },
-  {
-    id: "2",
-    serviceName: "AC Service & Repair",
-    customerName: "Rahul Verma",
-    location: "Indiranagar, Bangalore",
-    distance: "5.1 km",
-    dateTime: "Tomorrow, 10:00 AM",
-    earnings: 1200,
-    status: "accepted",
-  },
-  {
-    id: "3",
-    serviceName: "Plumbing Repair",
-    customerName: "Amit Kumar",
-    location: "HSR Layout, Bangalore",
-    distance: "2.5 km",
-    dateTime: "Yesterday",
-    earnings: 650,
-    status: "completed",
-  },
-  {
-    id: "4",
-    serviceName: "Electrical Wiring",
-    customerName: "Sneha Patel",
-    location: "Whitefield, Bangalore",
-    distance: "8.3 km",
-    dateTime: "2 days ago",
-    earnings: 1500,
-    status: "completed",
-  },
-  {
-    id: "5",
-    serviceName: "Painting Work",
-    customerName: "Vikram Singh",
-    location: "JP Nagar, Bangalore",
-    distance: "4.7 km",
-    dateTime: "Now",
-    earnings: 2200,
-    status: "in-progress",
-  },
-];
-
-const incomingJobData = {
-  id: "6",
-  serviceName: "Furniture Assembly",
-  customerName: "Meera Reddy",
-  location: "Electronic City, Bangalore",
-  distance: "6.2 km",
-  dateTime: "Today, 5:00 PM",
-  earnings: 950,
-  status: "incoming",
-};
-
-const tabs = ["Incoming", "Accepted", "In Progress", "Completed"];
+const tabs = ["Incoming", "Accepted", "In Progress", "Completed", "Rejected"];
 
 export default function JobsPage() {
   const { addToast } = useToast();
 
   const [activeTab, setActiveTab] = useState("Incoming");
-  const [jobs, setJobs] = useState(initialJobs);
-  const [incomingJob, setIncomingJob] = useState(incomingJobData);
-  const [countdown, setCountdown] = useState(60);
+  const [pendingAssignments, setPendingAssignments] = useState([]);
+  const [historyAssignments, setHistoryAssignments] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Countdown timer for incoming job
-  useEffect(() => {
-    if (!incomingJob || countdown <= 0) return;
+  const normalizeList = (value) => {
+    if (Array.isArray(value)) return value;
+    if (Array.isArray(value?.results)) return value.results;
+    return [];
+  };
 
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          setIncomingJob(null);
-          addToast("Job request expired!", { type: "warning", duration: 5000 });
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+  const loadAssignments = async () => {
+    try {
+      setLoading(true);
+      const [pendingRes, historyRes] = await Promise.all([
+        apiFetch("/api/bookings/taaskr/pending-assignments/"),
+        apiFetch("/api/bookings/taaskr/assignments-history/"),
+      ]);
 
-    return () => clearInterval(timer);
-  }, [incomingJob, countdown, addToast]);
-
-  const handleAcceptJob = () => {
-    if (incomingJob) {
-      setJobs([...jobs, { ...incomingJob, status: "accepted" }]);
-      setIncomingJob(null);
-      setCountdown(60);
-      addToast("Job accepted!", {
-        type: "success",
-        description: "The job has been added to your accepted jobs",
-      });
+      setPendingAssignments(normalizeList(pendingRes));
+      setHistoryAssignments(normalizeList(historyRes));
+    } catch (err) {
+      addToast("Failed to load jobs", { type: "error" });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleRejectJob = () => {
-    setIncomingJob(null);
-    setCountdown(60);
-    addToast("Job rejected", {
-      type: "info",
-      description: "The job has been passed to another Taaskr",
-    });
+  useEffect(() => {
+    loadAssignments();
+  }, []);
+
+  const handleAssignmentAction = async (assignmentId, action) => {
+    try {
+      await apiFetch(`/api/bookings/taaskr/assignments/${assignmentId}/action/`, {
+        method: "PATCH",
+        body: JSON.stringify({ action }),
+      });
+
+      if (action === "accept") {
+        addToast("Job accepted", { type: "success" });
+      } else {
+        addToast("Job rejected", { type: "info" });
+      }
+
+      loadAssignments();
+    } catch (err) {
+      addToast("Action failed", { type: "error" });
+    }
   };
 
-  // Filter jobs based on active tab
-  const filteredJobs = jobs.filter((job) => {
+  const incomingAssignments = useMemo(() => {
+    const byId = new Map();
+    const pendingList = Array.isArray(pendingAssignments)
+      ? pendingAssignments
+      : [];
+    const historyList = Array.isArray(historyAssignments)
+      ? historyAssignments
+      : [];
+    pendingList
+      .filter((a) => !["cancelled", "completed"].includes(a.booking_status))
+      .forEach((a) => byId.set(a.id, a));
+    historyList
+      .filter(
+        (a) =>
+          a.status === "requested" &&
+          !["cancelled", "completed"].includes(a.booking_status),
+      )
+      .forEach((a) => byId.set(a.id, a));
+    return Array.from(byId.values());
+  }, [pendingAssignments, historyAssignments]);
+
+  const incomingJobs = useMemo(() => {
+    return incomingAssignments.map((a) => ({
+      id: a.id,
+      bookingId: a.booking_id,
+      serviceName: a.service_name,
+      customerName: a.customer_name,
+      location: a.location_short,
+      distance: "-",
+      dateTime: a.scheduled_at,
+      taskLabel: `Task: ${a.service_name || "View details"}`,
+      status: "incoming",
+    }));
+  }, [incomingAssignments]);
+
+  const acceptedJobs = useMemo(() => {
+    return historyAssignments
+      .filter(
+        (a) =>
+          a.status === "accepted" &&
+          ["pending", "confirmed"].includes(a.booking_status),
+      )
+      .map((a) => ({
+        id: a.id,
+        bookingId: a.booking_id,
+        serviceName: a.service_name,
+        customerName: a.customer_name,
+        location: a.location_short,
+        distance: "-",
+        dateTime: a.scheduled_at,
+        taskLabel: `Task: ${a.service_name || "View details"}`,
+        status: "accepted",
+      }));
+  }, [historyAssignments]);
+
+  const inProgressJobs = useMemo(() => {
+    return historyAssignments
+      .filter((a) => a.status === "accepted" && a.booking_status === "started")
+      .map((a) => ({
+        id: a.id,
+        bookingId: a.booking_id,
+        serviceName: a.service_name,
+        customerName: a.customer_name,
+        location: a.location_short,
+        distance: "-",
+        dateTime: a.scheduled_at,
+        taskLabel: `Task: ${a.service_name || "View details"}`,
+        status: "in-progress",
+      }));
+  }, [historyAssignments]);
+
+  const completedJobs = useMemo(() => {
+    return historyAssignments
+      .filter((a) => a.status === "accepted" && a.booking_status === "completed")
+      .map((a) => ({
+        id: a.id,
+        bookingId: a.booking_id,
+        serviceName: a.service_name,
+        customerName: a.customer_name,
+        location: a.location_short,
+        distance: "-",
+        dateTime: a.scheduled_at,
+        taskLabel: `Task: ${a.service_name || "View details"}`,
+        status: "completed",
+      }));
+  }, [historyAssignments]);
+
+  const rejectedJobs = useMemo(() => {
+    return historyAssignments
+      .filter((a) => ["rejected", "cancelled", "expired"].includes(a.status))
+      .map((a) => ({
+        id: a.id,
+        bookingId: a.booking_id,
+        serviceName: a.service_name,
+        customerName: a.customer_name,
+        location: a.location_short,
+        distance: "-",
+        dateTime: a.scheduled_at,
+        taskLabel: `Task: ${a.service_name || "View details"}`,
+        status: "rejected",
+      }));
+  }, [historyAssignments]);
+
+  const filteredJobs = () => {
     switch (activeTab) {
       case "Incoming":
-        return false; // Incoming is handled separately
+        return incomingJobs;
       case "Accepted":
-        return job.status === "accepted";
+        return acceptedJobs;
       case "In Progress":
-        return job.status === "in-progress";
+        return inProgressJobs;
       case "Completed":
-        return job.status === "completed";
+        return completedJobs;
+      case "Rejected":
+        return rejectedJobs;
       default:
-        return true;
+        return [];
     }
-  });
+  };
 
-  // Count for each tab
   const getTabCount = (tab) => {
     switch (tab) {
       case "Incoming":
-        return incomingJob ? 1 : 0;
+        return incomingJobs.length;
       case "Accepted":
-        return jobs.filter((j) => j.status === "accepted").length;
+        return acceptedJobs.length;
       case "In Progress":
-        return jobs.filter((j) => j.status === "in-progress").length;
+        return inProgressJobs.length;
       case "Completed":
-        return jobs.filter((j) => j.status === "completed").length;
+        return completedJobs.length;
+      case "Rejected":
+        return rejectedJobs.length;
       default:
         return 0;
     }
@@ -157,7 +203,7 @@ export default function JobsPage() {
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)] pb-20 ">
-      {/* Tabs – sticky below header */}
+      {/* Tabs */}
       <div className="bg-[var(--color-surface)] border-b border-[var(--color-border)] sticky top-14 z-30">
         <div className="container">
           <div className="flex overflow-x-auto no-scrollbar">
@@ -196,51 +242,86 @@ export default function JobsPage() {
 
       {/* Main Content */}
       <main className="container py-6 md:px-10">
-        {/* Incoming Job (shown only on Incoming tab) */}
-        {activeTab === "Incoming" && incomingJob && (
-          <div className="mb-6 animate-slide-in-right">
-            <JobCard
-              {...incomingJob}
-              countdown={countdown}
-              onAccept={handleAcceptJob}
-              onReject={handleRejectJob}
-            />
+        {loading ? (
+          <div className="text-center py-16 text-[var(--color-text-light)]">
+            Loading jobs...
           </div>
+        ) : (
+          <>
+            {activeTab === "Incoming" ? (
+              incomingJobs.length > 0 ? (
+                <div className="space-y-5">
+                  {incomingJobs.map((job) => (
+                    <JobCard
+                      key={job.id}
+                      serviceName={job.serviceName}
+                      customerName={job.customerName}
+                      location={job.location}
+                      distance={job.distance}
+                      dateTime={new Date(job.dateTime).toLocaleString("en-IN")}
+                      taskLabel={job.taskLabel}
+                      status="incoming"
+                      onAccept={() =>
+                        handleAssignmentAction(job.id, "accept")
+                      }
+                      onReject={() =>
+                        handleAssignmentAction(job.id, "reject")
+                      }
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-16">
+                  <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-5">
+                    <span className="text-4xl">-</span>
+                  </div>
+                  <h3 className="font-semibold text-xl mb-3">
+                    No Incoming Requests
+                  </h3>
+                  <p className="text-[var(--color-text-light)] max-w-xs mx-auto">
+                    Stay online to receive new job requests from customers
+                  </p>
+                </div>
+              )
+            ) : (
+              <>
+                {filteredJobs().length > 0 ? (
+                  <div className="space-y-5">
+                    {filteredJobs().map((job) => (
+                      <Link key={job.id} href={`/jobs/${job.bookingId}`}>
+                        <JobCard
+                          serviceName={job.serviceName}
+                          customerName={job.customerName}
+                          location={job.location}
+                          distance={job.distance}
+                          dateTime={new Date(job.dateTime).toLocaleString(
+                            "en-IN",
+                          )}
+                          taskLabel={job.taskLabel}
+                          status={job.status}
+                        />
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-16">
+                    <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-5">
+                      <span className="text-4xl">-</span>
+                    </div>
+                    <h3 className="font-semibold text-xl mb-3">
+                      No {activeTab} Jobs
+                    </h3>
+                    <p className="text-[var(--color-text-light)] max-w-xs mx-auto">
+                      You do not have any {activeTab.toLowerCase()} jobs right now
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
+          </>
         )}
-
-        {/* Filtered Jobs */}
-        {activeTab !== "Incoming" && filteredJobs.length > 0 ? (
-          <div className="space-y-5">
-            {filteredJobs.map((job) => (
-              <Link key={job.id} href={`/jobs/${job.id}`}>
-                <JobCard {...job} />
-              </Link>
-            ))}
-          </div>
-        ) : activeTab === "Incoming" && !incomingJob ? (
-          <div className="text-center py-16">
-            <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-5">
-              <span className="text-4xl">📥</span>
-            </div>
-            <h3 className="font-semibold text-xl mb-3">No Incoming Requests</h3>
-            <p className="text-[var(--color-text-light)] max-w-xs mx-auto">
-              Stay online to receive new job requests from customers
-            </p>
-          </div>
-        ) : activeTab !== "Incoming" && filteredJobs.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-5">
-              <span className="text-4xl">📋</span>
-            </div>
-            <h3 className="font-semibold text-xl mb-3">No {activeTab} Jobs</h3>
-            <p className="text-[var(--color-text-light)] max-w-xs mx-auto">
-              You don't have any {activeTab.toLowerCase()} jobs at the moment
-            </p>
-          </div>
-        ) : null}
       </main>
 
-      <BottomNav />
     </div>
   );
 }

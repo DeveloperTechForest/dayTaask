@@ -9,7 +9,7 @@ export default function Logout() {
 
   useEffect(() => {
     const logoutUser = async () => {
-      await apiFetch("http://localhost:8000/api/users/logout/", {
+      await apiFetch("/api/users/logout/", {
         method: "POST",
       });
 

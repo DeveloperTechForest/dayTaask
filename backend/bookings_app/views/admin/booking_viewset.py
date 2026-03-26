@@ -6,8 +6,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
+from django.utils import timezone
 
 from bookings_app.models import Booking, AssignmentLog
+from bookings_app.serializers.utils.assignment_utils import recalculate_assignment_status
 from bookings_app.serializers.admin.booking_list_serializer import (
     BookingAdminListSerializer,
 )
@@ -79,7 +81,6 @@ class AdminBookingViewSet(ModelViewSet):
         search = request.query_params.get("search")
         status_filter = request.query_params.get("status")
         assignment_status = request.query_params.get("assignment_status")
-
         if search:
             queryset = queryset.filter(
                 Q(booking_code__icontains=search) |
@@ -122,6 +123,8 @@ class AdminBookingViewSet(ModelViewSet):
             booking=booking,
             status="requested",
         ).update(status="cancelled")
+
+        recalculate_assignment_status(booking, force_failed=True)
 
         return Response({"detail": "Booking cancelled"})
 

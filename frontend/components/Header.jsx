@@ -64,14 +64,16 @@ export default function Header() {
           </Link>
 
           {/* CENTER: Desktop Navigation */}
+          {/* CENTER: Search Bar */}
+
           <nav className="hidden md:flex items-center gap-8 lg:gap-10">
-            <Link
+            {/* <Link
               href="/"
               className="text-sm font-medium text-gray-700 hover:text-[var(--color-primary)] transition-colors flex items-center gap-1.5"
             >
               <Home className="w-4 h-4" />
               Home
-            </Link>
+            </Link> */}
             <Link
               href="/about"
               className="text-sm font-medium text-gray-700 hover:text-[var(--color-primary)] transition-colors flex items-center gap-1.5"
@@ -93,6 +95,31 @@ export default function Header() {
               <Mail className="w-4 h-4" />
               Contact
             </Link>
+            <div className="hidden md:flex flex-1 justify-center px-6">
+              <div className="w-full max-w-md relative">
+                <input
+                  type="text"
+                  placeholder="Search services..."
+                  className="w-full pl-12 pr-4 py-2.5 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-Black transition-all"
+                />
+
+                {/* Search Icon */}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M21 21l-4.35-4.35m1.6-5.4a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+              </div>
+            </div>
           </nav>
 
           {/* RIGHT: Actions */}

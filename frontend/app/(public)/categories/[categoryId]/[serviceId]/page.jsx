@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import { useParams, useRouter } from "next/navigation";
 import { Star, Clock, Shield, CheckCircle, ArrowLeft } from "lucide-react";
+import { apiFetch } from "@/utils/api";
 
 export default function ServiceDetail() {
   const { categoryId, serviceId } = useParams();
@@ -16,11 +17,12 @@ export default function ServiceDetail() {
   useEffect(() => {
     async function loadService() {
       try {
-        const res = await fetch(
-          `http://localhost:8000/api/services/services-detail/${serviceId}/`,
+        const data = await apiFetch(
+          `/api/services/services-detail/${serviceId}/`,
         );
-
-        const data = await res.json();
+        if (data?.error) {
+          throw new Error(data.error);
+        }
         setService(data);
       } catch (err) {
         console.error("Error fetching service:", err);
@@ -152,7 +154,11 @@ export default function ServiceDetail() {
                   </button>
 
                   <button
-                    onClick={() => router.push("/user/quote/quote-request")}
+                    onClick={() =>
+                      router.push(
+                        `/user/quote/quote-request?categoryId=${categoryId}&serviceId=${serviceId}`,
+                      )
+                    }
                     className="w-full border-2 border-yellow-500 text-yellow-500 font-bold py-4 rounded-xl hover:bg-yellow-100 hover:text-yellow-600 transition cursor-pointer"
                   >
                     Get Custom Quote

@@ -32,6 +32,7 @@ GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
 # SECURITY
 SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-change-me-in-production")
 DEBUG = os.getenv("DEBUG", "True") == "True"
+IS_PROD = not DEBUG
 ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "*").split(",")
 
 
@@ -74,21 +75,29 @@ MIDDLEWARE = [
 ]
 
 CORS_ALLOW_CREDENTIALS = True
-SESSION_COOKIE_SECURE = False
-CSRF_COOKIE_SECURE = False
+SESSION_COOKIE_SECURE = IS_PROD
+CSRF_COOKIE_SECURE = IS_PROD
 ROOT_URLCONF = "daytaask_backend.urls"
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:3001",
+    "http://localhost:3002",
+    "https://taaskr.daytaask.com",
+    "https://admin.daytaask.com",
+    "https://daytaask.com",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:3001",
+    "http://localhost:3002",
+    "https://taaskr.daytaask.com",
+    "https://admin.daytaask.com",
+    "https://daytaask.com",
 ]
 CSRF_COOKIE_HTTPONLY = False
-CSRF_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "None" if IS_PROD else "Lax"
 CSRF_COOKIE_AGE = 60 * 60 * 24
 
 
@@ -234,13 +243,14 @@ SIMPLE_JWT = {
 # ==========================
 AUTH_COOKIE = "access_token"
 AUTH_COOKIE_REFRESH = "refresh_token"
-
+# Set to ".daytaask.com" in production for cross-subdomain cookies
+AUTH_COOKIE_DOMAIN = os.getenv("AUTH_COOKIE_DOMAIN") or None
 AUTH_COOKIE_MAX_AGE = 60 * 60 * 24      # 24 HOURS
 AUTH_REFRESH_COOKIE_MAX_AGE = 60 * 60 * 24 * 7  # 7 DAYS
 
-AUTH_COOKIE_SECURE = False              # True in prod (HTTPS)
+AUTH_COOKIE_SECURE = IS_PROD              # True in prod (HTTPS)
 AUTH_COOKIE_HTTP_ONLY = True
-AUTH_COOKIE_SAMESITE = "Lax"            # None in prod (cross-domain)
+AUTH_COOKIE_SAMESITE = "None" if IS_PROD else "Lax"            # None in prod (cross-domain)
 
 # ==========================
 # SESSION (optional but safe)

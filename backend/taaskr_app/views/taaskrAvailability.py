@@ -74,3 +74,22 @@ class AvailabilityViewSet(viewsets.ModelViewSet):
                 errors.append({"data": item, "errors": serializer.errors})
 
         return Response({"updated": updated, "errors": errors})
+
+    @action(detail=False, methods=["post"], url_path="toggle")
+    def toggle(self, request):
+        """Toggle availability for current taaskr"""
+        availability = Availability.objects.filter(
+            taaskr=request.user
+        ).order_by("-updated_at").first()
+
+        if availability:
+            availability.is_available = not availability.is_available
+            availability.save(update_fields=["is_available", "updated_at"])
+        else:
+            availability = Availability.objects.create(
+                taaskr=request.user,
+                is_available=True
+            )
+
+        serializer = self.get_serializer(availability)
+        return Response(serializer.data)

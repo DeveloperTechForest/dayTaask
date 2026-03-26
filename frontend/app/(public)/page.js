@@ -16,6 +16,7 @@ import {
 import { useEffect, useState } from "react";
 import { ShieldCheck, Clock, ThumbsUp } from "lucide-react";
 import Link from "next/link";
+import { apiFetch } from "@/utils/api";
 
 // ────────────────────────────────────────────────
 // Reusable button styles (same as your previous design)
@@ -100,8 +101,11 @@ export default function Home() {
   useEffect(() => {
     async function loadData() {
       try {
-        const res = await fetch("http://localhost:8000/api/services/home/");
-        const data = await res.json();
+        const data = await apiFetch("/api/services/home/");
+        if (data?.error) {
+          console.error("API error:", data);
+          return;
+        }
         setHomeData(data);
       } catch (error) {
         console.error("API error:", error);
@@ -268,7 +272,7 @@ export default function Home() {
           </div>
 
           {/* Most Booked Services */}
-          <section className="py-16 md:py-24 bg-gradient-to-b from-gray-50 to-white">
+          <section className="py-16 md:pt-24 bg-gradient-to-b from-gray-50 to-white">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
               <div className="text-center space-y-3 mb-12">
                 <h2 className="font-heading font-bold text-3xl sm:text-4xl text-foreground">
@@ -328,19 +332,19 @@ export default function Home() {
           </section>
 
           {/* CTA Button */}
-          <div className="text-center mt-12 sm:mt-16 lg:mt-20">
+          {/* <div className="text-center mt-12 sm:mt-16 lg:mt-20">
             <Link href="/categories">
               <button className="h-12 sm:h-14 px-8 sm:px-12 bg-yellow-500 text-white font-semibold text-base sm:text-xl rounded-full hover:bg-yellow-600 transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-[1.03] active:scale-95 inline-flex items-center gap-2 sm:gap-3">
                 Book Your First Service
                 <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
             </Link>
-          </div>
+          </div> */}
         </div>
       </section>
 
       {/* Customer Testimonials */}
-      <section className="py-20 md:py-28 bg-white">
+      {/* <section className="py-20 md:py-28 bg-white">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center space-y-4 mb-16">
             <h2 className="font-heading font-bold text-3xl sm:text-4xl text-foreground">
@@ -386,10 +390,10 @@ export default function Home() {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* Final CTA */}
-      <section className="py-20 bg-gradient-to-br from-yellow-50 to-amber-50">
+      {/* <section className="py-20 bg-gradient-to-br from-yellow-50 to-amber-50">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="font-heading font-bold text-3xl sm:text-4xl text-foreground mb-6">
             Ready for a Cleaner, Better Home?
@@ -405,7 +409,21 @@ export default function Home() {
             </button>
           </Link>
         </div>
-      </section>
+      </section> */}
+      <footer className="bg-[#0a0f1e] py-8 px-10 text-center border-t border-white/[0.06]">
+        <p className="text-slate-500 text-[13px] leading-[1.8]">
+          © 2026 Day Taask. All rights reserved. Made with ❤️ for you.
+          <br />
+          Designed &amp; Developed by :{" "}
+          <a
+            href="https://www.techforestsoftware.com"
+            target="_blank"
+            className="text-slate-400 font-semibold hover:text-amber-500 transition-colors"
+          >
+            Tech Forest Software Pvt. Ltd.
+          </a>
+        </p>
+      </footer>
     </div>
   );
 }

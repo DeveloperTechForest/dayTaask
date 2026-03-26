@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/context/AuthContext";
+import { apiFetch } from "@/utils/api";
 
 export default function LoginPage() {
   const [formError, setFormError] = useState("");
@@ -38,13 +39,12 @@ export default function LoginPage() {
   // GOOGLE LOGIN REDIRECT
   // ---------------------------
   const handleGoogleLogin = async () => {
-    const res = await fetch("http://localhost:8000/google/login/");
-    const data = await res.json();
+    const data = await apiFetch("/google/login/", { method: "GET" });
 
     if (data.auth_url) {
       window.location.href = data.auth_url;
     } else {
-      alert("Google login URL error");
+      alert(data?.error || "Google login URL error");
     }
   };
 
@@ -67,7 +67,7 @@ export default function LoginPage() {
               <input
                 type="text"
                 placeholder="Enter email or phone number"
-                value={email}
+                value={email ?? ""}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg"
               />
@@ -80,7 +80,7 @@ export default function LoginPage() {
               <input
                 type="password"
                 placeholder="Enter your password"
-                value={password}
+                value={password ?? ""}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg"
               />

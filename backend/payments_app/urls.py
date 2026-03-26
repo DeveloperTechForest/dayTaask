@@ -29,7 +29,7 @@ router.register(
 
 urlpatterns = [
     path(
-        "customer/payments/cod/",
+        "customer/payments/confirm-cod/",
         ConfirmCODView.as_view(),
     ),
     path("", include(router.urls)),

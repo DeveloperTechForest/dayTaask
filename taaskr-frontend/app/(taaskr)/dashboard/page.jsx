@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Wallet,
@@ -18,124 +18,83 @@ import {
 import { StatCard } from "@/components/taaskr/StatCard";
 import { JobCard } from "@/components/taaskr/JobCard";
 import { useToast } from "@/components/taaskr/ToastProvider";
-
-// Mock data
-const upcomingJobs = [
-  {
-    id: "1",
-    serviceName: "Home Deep Cleaning",
-    customerName: "Priya Sharma",
-    location: "Koramangala, Bangalore",
-    distance: "3.2 km",
-    dateTime: "Today, 2:00 PM",
-    earnings: 850,
-    status: "accepted",
-  },
-  {
-    id: "2",
-    serviceName: "AC Service & Repair",
-    customerName: "Rahul Verma",
-    location: "Indiranagar, Bangalore",
-    distance: "5.1 km",
-    dateTime: "Tomorrow, 10:00 AM",
-    earnings: 1200,
-    status: "accepted",
-  },
-];
-
-const incomingJob = {
-  id: "3",
-  serviceName: "Plumbing Repair",
-  customerName: "Amit Kumar",
-  location: "HSR Layout, Bangalore",
-  distance: "2.5 km",
-  dateTime: "Today, 4:30 PM",
-  earnings: 650,
-  status: "incoming",
-};
+import { apiFetch } from "@/utils/api";
 
 export default function DashboardPage() {
   const { addToast } = useToast();
   const [isOnline, setIsOnline] = useState(true);
-  const [showIncoming, setShowIncoming] = useState(true);
-  const [countdown, setCountdown] = useState(60);
-  const hasMounted = useRef(false);
+  const [loading, setLoading] = useState(true);
+  const [dashboard, setDashboard] = useState(null);
 
-  // Countdown timer for incoming job
+  const loadDashboard = async () => {
+    try {
+      setLoading(true);
+      const res = await apiFetch("/api/taaskr/dashboard/");
+      if (res?.error) throw new Error(res.error);
+      setDashboard(res);
+      setIsOnline(res?.availability?.is_online ?? true);
+    } catch (err) {
+      addToast("Failed to load dashboard", { type: "error" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    if (!showIncoming || !isOnline || countdown <= 0) return;
-
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          setShowIncoming(false);
-          if (hasMounted.current) {
-            addToast("Job request expired!", {
-              type: "warning",
-              duration: 5000,
-            });
-          }
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [showIncoming, isOnline, countdown, addToast]);
-
-  // Mark component as mounted
-  useEffect(() => {
-    hasMounted.current = true;
+    loadDashboard();
   }, []);
 
-  const handleAcceptJob = () => {
-    setShowIncoming(false);
-    setCountdown(60);
-    addToast("Job accepted! Added to your schedule.", { type: "success" });
-  };
-
-  const handleRejectJob = () => {
-    setShowIncoming(false);
-    setCountdown(60);
-    addToast("Job rejected. Passed to another Taaskr.", { type: "info" });
-  };
-
-  const handleToggleOnline = () => {
-    setIsOnline((prev) => {
-      const goingOnline = !prev;
-      if (goingOnline) {
-        addToast("You're now online! You'll start receiving job requests.", {
-          type: "success",
-          duration: 5000,
-        });
+  const handleToggleOnline = async () => {
+    try {
+      const res = await apiFetch("/api/taaskr/availability/toggle/", {
+        method: "POST",
+      });
+      const nextOnline = res?.is_available ?? !isOnline;
+      setIsOnline(nextOnline);
+      if (nextOnline) {
+        addToast("You are now online", { type: "success", duration: 4000 });
       } else {
-        addToast("You're now offline. No new job requests.", {
-          type: "warning",
-          duration: 5000,
-        });
-        setShowIncoming(false);
+        addToast("You are now offline", { type: "warning", duration: 4000 });
       }
-      return goingOnline;
-    });
+    } catch (err) {
+      addToast("Failed to toggle availability", { type: "error" });
+    }
   };
+
+  const stats = dashboard?.stats || {};
+  const recentRequests = (dashboard?.recent_requests || []).filter(
+    (job) => !["cancelled", "completed"].includes(job.booking_status || job.status),
+  );
+  const upcomingJobs = (dashboard?.upcoming_jobs || []).filter(
+    (job) => !["cancelled", "completed"].includes(job.booking_status || job.status),
+  );
+  const notifications = dashboard?.notifications || [];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg text-[var(--color-text-light)]">
+          Loading dashboard...
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="py-6 px-4 md:px-10 space-y-8">
-      {/* Welcome + Beautiful Animated Toggle */}
+    <div className="container py-6 px-4 md:px-10 space-y-8">
+      {/* Welcome + Animated Toggle */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
         <div>
           <h1 className="text-3xl md:text-4xl font-bold font-display bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] bg-clip-text text-transparent">
-            Hello, Rajesh!
+            Hello!
           </h1>
           <p className="text-[var(--color-text-light)] mt-2 text-lg">
             {isOnline
-              ? "You're live and ready for new jobs"
+              ? "You are live and ready for new jobs"
               : "Go online to start earning"}
           </p>
         </div>
 
-        {/* Animated Toggle Button – same style, different color when online */}
         <button
           onClick={handleToggleOnline}
           className="button relative group"
@@ -186,44 +145,32 @@ export default function DashboardPage() {
         </button>
       </div>
 
-      {/* Incoming Job Request */}
-      {showIncoming && isOnline && (
-        <div className="animate-slide-in-right transform transition-all duration-500 hover:scale-[1.01]">
-          <JobCard
-            {...incomingJob}
-            countdown={countdown}
-            onAccept={handleAcceptJob}
-            onReject={handleRejectJob}
-          />
-        </div>
-      )}
-
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
         {[
           {
-            title: "Today's Earnings",
-            value: "₹2,450",
-            subtitle: "3 jobs completed",
+            title: "Today's Jobs",
+            value: `${stats.jobs_today || 0}`,
+            subtitle: "",
             icon: Wallet,
             variant: "primary",
           },
           {
             title: "This Week",
-            value: "₹12,800",
+            value: `${stats.jobs_week || 0}`,
             icon: TrendingUp,
-            trend: { value: 15, isPositive: true },
+            trend: { value: 0, isPositive: true },
           },
           {
             title: "Jobs Done",
-            value: "47",
-            subtitle: "This month",
+            value: `${stats.jobs_done || 0}`,
+            subtitle: "",
             icon: Briefcase,
           },
           {
             title: "Rating",
-            value: "4.8",
-            subtitle: "Based on 42 reviews",
+            value: `${stats.rating_avg || 0}`,
+            subtitle: "",
             icon: Star,
           },
         ].map((stat, i) => (
@@ -246,21 +193,23 @@ export default function DashboardPage() {
           <div>
             <div className="flex items-center justify-center gap-2 text-[var(--color-success)] mb-2">
               <CheckCircle className="w-5 h-5" />
-              <span className="text-2xl font-bold">3</span>
+              <span className="text-2xl font-bold">0</span>
             </div>
             <p className="text-sm text-[var(--color-text-light)]">Completed</p>
           </div>
           <div>
             <div className="flex items-center justify-center gap-2 text-[var(--color-primary)] mb-2">
               <Clock className="w-5 h-5" />
-              <span className="text-2xl font-bold">2</span>
+              <span className="text-2xl font-bold">{upcomingJobs.length}</span>
             </div>
             <p className="text-sm text-[var(--color-text-light)]">Upcoming</p>
           </div>
           <div>
             <div className="flex items-center justify-center gap-2 text-[var(--color-warning)] mb-2">
               <Target className="w-5 h-5" />
-              <span className="text-2xl font-bold">92%</span>
+              <span className="text-2xl font-bold">
+                {stats.acceptance_rate || 0}%
+              </span>
             </div>
             <p className="text-sm text-[var(--color-text-light)]">Acceptance</p>
           </div>
@@ -284,6 +233,44 @@ export default function DashboardPage() {
         </Link>
       </div>
 
+      {/* Recent Requests */}
+      <div>
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-xl font-semibold font-display">
+            Recent Requests
+          </h2>
+          <Link
+            href="/jobs"
+            className="text-sm text-[var(--color-primary)] font-medium flex items-center gap-1.5 hover:underline transition-all"
+          >
+            View All
+            <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          </Link>
+        </div>
+
+        {recentRequests.length === 0 ? (
+          <div className="text-sm text-[var(--color-text-light)]">
+            No recent requests
+          </div>
+        ) : (
+          <div className="space-y-5">
+            {recentRequests.map((job) => (
+              <Link key={job.id} href={`/jobs/${job.booking_id}`}>
+                <JobCard
+                  serviceName={job.service_name}
+                  customerName={job.customer_name}
+                  location={job.location}
+                  distance={job.distance}
+                  dateTime={new Date(job.date_time).toLocaleString("en-IN")}
+                  taskLabel={`Task: ${job.service_name || "View details"}`}
+                  status="incoming"
+                />
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Upcoming Jobs */}
       <div>
         <div className="flex items-center justify-between mb-5">
@@ -298,11 +285,25 @@ export default function DashboardPage() {
         </div>
 
         <div className="space-y-5">
-          {upcomingJobs.map((job) => (
-            <Link key={job.id} href={`/jobs/${job.id}`}>
-              <JobCard {...job} />
-            </Link>
-          ))}
+          {upcomingJobs.length === 0 ? (
+            <div className="text-sm text-[var(--color-text-light)]">
+              No upcoming jobs
+            </div>
+          ) : (
+            upcomingJobs.map((job) => (
+              <Link key={job.id} href={`/jobs/${job.booking_id}`}>
+                <JobCard
+                  serviceName={job.service_name}
+                  customerName={job.customer_name}
+                  location={job.location}
+                  distance={job.distance}
+                  dateTime={new Date(job.date_time).toLocaleString("en-IN")}
+                  taskLabel={`Task: ${job.service_name || "View details"}`}
+                  status="accepted"
+                />
+              </Link>
+            ))
+          )}
         </div>
       </div>
 
@@ -322,27 +323,28 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        <div className="space-y-4">
-          <div className="flex items-start gap-4 p-3 rounded-xl hover:bg-gray-50/80 transition-colors">
-            <div className="w-2.5 h-2.5 rounded-full bg-[var(--color-primary)] mt-2 flex-shrink-0" />
-            <div>
-              <p className="text-sm font-medium">Payment Received</p>
-              <p className="text-xs text-[var(--color-text-light)] mt-1">
-                ₹850 credited to your wallet • 2h ago
-              </p>
-            </div>
+        {notifications.length === 0 ? (
+          <div className="text-sm text-[var(--color-text-light)]">
+            No notifications
           </div>
-
-          <div className="flex items-start gap-4 p-3 rounded-xl hover:bg-gray-50/80 transition-colors">
-            <div className="w-2.5 h-2.5 rounded-full bg-[var(--color-success)] mt-2 flex-shrink-0" />
-            <div>
-              <p className="text-sm font-medium">New Rating</p>
-              <p className="text-xs text-[var(--color-text-light)] mt-1">
-                Priya rated you 5 stars! • 4h ago
-              </p>
-            </div>
+        ) : (
+          <div className="space-y-4">
+            {notifications.map((n, idx) => (
+              <div
+                key={idx}
+                className="flex items-start gap-4 p-3 rounded-xl hover:bg-gray-50/80 transition-colors"
+              >
+                <div className="w-2.5 h-2.5 rounded-full bg-[var(--color-primary)] mt-2 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-medium">{n.title}</p>
+                  <p className="text-xs text-[var(--color-text-light)] mt-1">
+                    {n.message}
+                  </p>
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

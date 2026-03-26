@@ -128,19 +128,44 @@ class TaaskrViewSet(ModelViewSet):
     def verify(self, request, pk=None):
         """
         PATCH /taaskrcrud/{id}/verify/
-        Toggle taaskr verification status
+        Update verification status and related fields
         """
         HasCustomPermission.required_permissions = "taaskr.verify"
 
         taaskr = self.get_object()
-        taaskr.verified = not taaskr.verified
-        taaskr.save(update_fields=["verified"])
+        data = request.data or {}
+
+        status_value = data.get("verification_status")
+        note_value = data.get("verification_note")
+        documents_verified = data.get("documents_verified")
+        bank_verified = data.get("bank_verified")
+        verified_value = data.get("verified")
+
+        if status_value:
+            taaskr.verification_status = status_value
+
+        if note_value is not None:
+            taaskr.verification_note = note_value
+
+        if documents_verified is not None:
+            taaskr.documents_verified = bool(documents_verified)
+
+        if bank_verified is not None:
+            taaskr.bank_verified = bool(bank_verified)
+
+        if status_value == "approved":
+            verified_value = True
+        elif status_value == "declined":
+            verified_value = False
+
+        if verified_value is None:
+            taaskr.verified = not taaskr.verified
+        else:
+            taaskr.verified = bool(verified_value)
+
+        taaskr.save()
 
         return Response(
-            {
-                "id": taaskr.id,
-                "verified": taaskr.verified,
-                "message": "Taaskr verification status updated",
-            },
+            TaaskrReadSerializer(taaskr).data,
             status=status.HTTP_200_OK,
         )

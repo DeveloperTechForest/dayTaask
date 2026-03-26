@@ -3,12 +3,16 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from taaskr_app.models.profile import TaaskrProfile
+from taaskr_app.serializers.taaskr_serializer import FlexibleListField, SingleStringListField
 from users_app.models.role import Role, UserRole
 
 User = get_user_model()
 
 
 class TaaskrProfileCreateSerializer(serializers.ModelSerializer):
+    skill_tags = FlexibleListField(required=False)
+    certification = SingleStringListField(required=False)
+
     class Meta:
         model = TaaskrProfile
         fields = [
@@ -34,12 +38,17 @@ class RegisterTaaskrSerializer(serializers.ModelSerializer):
             "phone",
             "profile",
         ]
+        extra_kwargs = {
+            "email": {"required": False, "allow_null": True, "allow_blank": True},
+        }
 
     # --------------------
     # VALIDATIONS
     # --------------------
 
     def validate_email(self, value):
+        if not value:
+            return value
         if User.objects.filter(email=value).exists():
             raise serializers.ValidationError("Email already exists.")
         return value

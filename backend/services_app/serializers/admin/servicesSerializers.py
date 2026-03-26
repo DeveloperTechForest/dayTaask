@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from services_app.models.service import Service
+from services_app.serializers.service import TextListField
 
 
 class AdminServiceSerializer(serializers.ModelSerializer):
@@ -30,3 +31,5 @@ class AdminServiceSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
+
+    whats_included = TextListField(required=False)

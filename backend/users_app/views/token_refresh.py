@@ -27,6 +27,7 @@ class RefreshAccessTokenView(APIView):
             secure=settings.AUTH_COOKIE_SECURE,
             samesite=settings.AUTH_COOKIE_SAMESITE,
             max_age=settings.AUTH_COOKIE_MAX_AGE,
+            domain=settings.AUTH_COOKIE_DOMAIN,
         )
 
         return response

@@ -31,8 +31,11 @@ class CustomService(models.Model):
         default="fixed"
     )
 
-    whats_included = ArrayField(models.CharField(
-        max_length=255), default=list, blank=True)
+    whats_included = ArrayField(
+        base_field=models.CharField(max_length=255),
+        blank=True,
+        default=list,
+    )
 
     duration_minutes = models.PositiveIntegerField(default=60)
     warranty_days = models.PositiveIntegerField(default=0)

@@ -1,5 +1,6 @@
 // app/layout.js     ← remains server component
-import Providers from "./providers"; // ← import the client wrapper
+import Providers from "./providers";
+import { AuthProvider } from "./context/AuthContext"; // ← import the client wrapper
 import { ToastProvider } from "@/components/taaskr/ToastProvider";
 import "./globals.css";
 
@@ -13,7 +14,9 @@ export default function RootLayout({ children }) {
     <html lang="en" suppressHydrationWarning>
       <body>
         <Providers>
-          <ToastProvider>{children}</ToastProvider>
+          <AuthProvider>
+            <ToastProvider>{children}</ToastProvider>
+          </AuthProvider>
         </Providers>
       </body>
     </html>

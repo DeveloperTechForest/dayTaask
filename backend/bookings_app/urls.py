@@ -6,6 +6,9 @@ from rest_framework.routers import DefaultRouter
 # Import all relevant ViewSets
 from bookings_app.views.customer.customer_dashboard_view import CustomerDashboardAPIView
 from bookings_app.views.customer.customer_booking_viewset import CustomerBookingViewSet
+from bookings_app.views.customer.customer_quote_request_viewset import (
+    CustomerQuoteRequestViewSet,
+)
 from bookings_app.views.admin.booking_viewset import AdminBookingViewSet
 from bookings_app.views.admin.assignment_viewset import AdminAssignmentViewSet
 from bookings_app.views.admin.admin_assignment_action_viewset import (
@@ -18,6 +21,18 @@ from bookings_app.views.taaskr.taaskr_assignment_viewset import (
     TaaskrAssignmentActionViewSet,
     TaaskrAssignmentsHistoryViewSet,
     TaaskrPendingAssignmentsViewSet,
+)
+from bookings_app.views.taaskr.taaskr_booking_detail_view import (
+    TaaskrBookingDetailView,
+)
+from bookings_app.views.taaskr.taaskr_custom_service_view import (
+    TaaskrCustomServiceView,
+)
+from bookings_app.views.taaskr.taaskr_service_flow_view import (
+    TaaskrStartServiceView,
+    TaaskrBookingMediaUploadView,
+    TaaskrCompletionRequestView,
+    TaaskrCompleteServiceView,
 )
 from bookings_app.views.admin.quote_request_viewset import (
     AdminQuoteRequestViewSet,
@@ -155,9 +170,45 @@ router.register(
     basename="customer-bookings",
 )
 
+router.register(
+    r"customer/quote-requests",
+    CustomerQuoteRequestViewSet,
+    basename="customer-quote-requests",
+)
+
 # Final URL patterns — includes all the router-generated paths
 urlpatterns = [
     path("dashboard/", CustomerDashboardAPIView.as_view(),
          name="customer-dashboard"),
+    path(
+        "taaskr/bookings/<int:booking_id>/detail/",
+        TaaskrBookingDetailView.as_view(),
+        name="taaskr-booking-detail",
+    ),
+    path(
+        "taaskr/bookings/<int:booking_id>/start/",
+        TaaskrStartServiceView.as_view(),
+        name="taaskr-booking-start",
+    ),
+    path(
+        "taaskr/bookings/<int:booking_id>/media/",
+        TaaskrBookingMediaUploadView.as_view(),
+        name="taaskr-booking-media",
+    ),
+    path(
+        "taaskr/bookings/<int:booking_id>/completion-request/",
+        TaaskrCompletionRequestView.as_view(),
+        name="taaskr-booking-completion-request",
+    ),
+    path(
+        "taaskr/bookings/<int:booking_id>/complete/",
+        TaaskrCompleteServiceView.as_view(),
+        name="taaskr-booking-complete",
+    ),
+    path(
+        "taaskr/custom-services/",
+        TaaskrCustomServiceView.as_view(),
+        name="taaskr-custom-service-create",
+    ),
     path("", include(router.urls)),
 ]

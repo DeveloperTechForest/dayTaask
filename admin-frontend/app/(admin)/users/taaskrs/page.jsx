@@ -8,7 +8,6 @@ import {
   MoreVertical,
   Eye,
   MessageSquare,
-  Wallet,
   Edit,
   Trash2,
   Loader2,
@@ -18,10 +17,6 @@ import {
   Plus,
   X,
   ChevronDown,
-  Clock,
-  Calendar,
-  CheckCircle,
-  AlertCircle,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch } from "@/utils/api";
@@ -30,7 +25,7 @@ export default function TaaskrsPage() {
   const { user, loading: authLoading, hasPermission } = useAuth();
 
   const [taaskrs, setTaaskrs] = useState([]);
-  const [availability, setAvailability] = useState([]);
+  const [services, setServices] = useState([]);
   const [selectedTaaskr, setSelectedTaaskr] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -40,27 +35,26 @@ export default function TaaskrsPage() {
   const [openDropdownId, setOpenDropdownId] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showAvailabilityModal, setShowAvailabilityModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showUnverifyConfirm, setShowUnverifyConfirm] = useState(false);
-  const [pendingUnverifyId, setPendingUnverifyId] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
   const [showViewModal, setShowViewModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
-  const [availLoading, setAvailLoading] = useState(false);
-  const [editingDay, setEditingDay] = useState(null);
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
+  const [verifyError, setVerifyError] = useState("");
+  const [verifyForm, setVerifyForm] = useState({
+    verified: false,
+    verification_status: "pending",
+    verification_note: "",
+    documents_verified: false,
+    bank_verified: false,
+  });
   const dropdownRefs = useRef({});
-  const [tempAvailability, setTempAvailability] = useState({});
-
-  const DAYS_ORDER = [
-    { key: "monday", label: "Monday" },
-    { key: "tuesday", label: "Tuesday" },
-    { key: "wednesday", label: "Wednesday" },
-    { key: "thursday", label: "Thursday" },
-    { key: "friday", label: "Friday" },
-    { key: "saturday", label: "Saturday" },
-    { key: "sunday", label: "Sunday" },
-  ];
+  const toAbsoluteUrl = (value) => {
+    if (!value) return null;
+    if (value.startsWith("http")) return value;
+    const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    return `${base}${value.startsWith("/") ? value : `/${value}`}`;
+  };
 
   const toggleDropdown = (id, e) => {
     e.stopPropagation();
@@ -97,43 +91,34 @@ export default function TaaskrsPage() {
     }
   };
 
-  const fetchAvailability = async (taaskrId) => {
-    try {
-      setAvailLoading(true);
-      const data = await apiFetch("/api/taaskr/admin/availability/");
-
-      // Handle paginated response
-      const availabilityList = Array.isArray(data) ? data : data?.results || [];
-
-      const filtered = availabilityList.filter((a) => a.taaskr === taaskrId);
-      setAvailability(filtered);
-    } catch (err) {
-      console.error("Fetch availability error:", err);
-      setAvailability([]);
-    } finally {
-      setAvailLoading(false);
-    }
-  };
-
-  const openAvailabilityModal = (taaskr) => {
-    if (selectedTaaskr?.id === taaskr.id) {
-      setShowAvailabilityModal(true);
-      fetchAvailability(taaskr.id); // refresh silently
-      return;
-    }
-
-    setSelectedTaaskr(taaskr);
-    setEditingDay(null);
-    setAvailability([]); // optional: clear old data
-    setShowAvailabilityModal(true); // open immediately
-    fetchAvailability(taaskr.id); // fetch in background
-  };
-
   useEffect(() => {
     if (!authLoading) {
       fetchTaaskrs();
+      fetchServices();
     }
   }, [authLoading]);
+
+  const fetchServices = async () => {
+    try {
+      const data = await apiFetch("/api/services/all-services/?page_size=200");
+      const list = Array.isArray(data?.results)
+        ? data.results
+        : Array.isArray(data)
+          ? data
+          : [];
+      setServices(list);
+    } catch (err) {
+      setServices([]);
+    }
+  };
+
+  const getSkillLabel = (skill) => {
+    const value = String(skill);
+    const isNumeric = /^\d+$/.test(value);
+    if (!isNumeric) return value;
+    const match = services.find((s) => String(s.id) === value);
+    return match?.name || value;
+  };
 
   // ADD TAASKR
   const handleAddTaaskr = async (e) => {
@@ -258,87 +243,73 @@ export default function TaaskrsPage() {
     }
   };
 
-  // VERIFY / UNVERIFY TAASKR
-  const handleVerifyTaaskr = async (taaskrId) => {
+  // VERIFY TAASKR (review modal)
+  const openVerifyModal = async (taaskrId) => {
     setActionLoading(true);
+    setVerifyError("");
     try {
-      const res = await apiFetch(
-        `/api/taaskr/admin/taaskrcrud/${taaskrId}/verify/`,
-        { method: "PATCH" }
-      );
-
-      // instant UI update
-      setTaaskrs((prev) =>
-        prev.map((t) =>
-          t.id === taaskrId ? { ...t, verified: res.verified } : t
-        )
-      );
-
-      // also update selected taaskr if open
-      if (selectedTaaskr?.id === taaskrId) {
-        setSelectedTaaskr((prev) => ({
-          ...prev,
-          verified: res.verified,
-        }));
-      }
+      const data = await apiFetch(`/api/taaskr/admin/taaskrcrud/${taaskrId}/`);
+      setSelectedTaaskr(data);
+      setVerifyForm({
+        verified: Boolean(data?.verified),
+        verification_status: data?.verification_status || "pending",
+        verification_note: data?.verification_note || "",
+        documents_verified: Boolean(data?.documents_verified),
+        bank_verified: Boolean(data?.bank_verified),
+      });
+      setShowVerifyModal(true);
     } catch (err) {
-      alert("Failed to update verification status");
+      alert("Failed to load verification data");
     } finally {
       setActionLoading(false);
     }
   };
 
-  const getDayAvailability = (dayKey) => {
-    return availability.find((a) => a.day_of_week === dayKey) || null;
-  };
+  const handleSaveVerification = async () => {
+    if (!selectedTaaskr) return;
+    setVerifyError("");
 
-  const handleSaveDay = async (dayKey, start, end, available) => {
-    if (available && start >= end) {
-      alert("End time must be after start time");
+    const status = verifyForm.verification_status || "pending";
+    const note = (verifyForm.verification_note || "").trim();
+
+    if (status === "declined" && !note) {
+      setVerifyError("Please add a reason when declining verification.");
       return;
     }
-    const existing = getDayAvailability(dayKey);
-    const payload = {
-      day_of_week: dayKey,
-      start_time: start,
-      end_time: end,
-      is_available: available,
-    };
 
+    let nextVerified = Boolean(verifyForm.verified);
+    if (status === "approved") nextVerified = true;
+    if (status === "declined") nextVerified = false;
+
+    setActionLoading(true);
     try {
-      if (existing) {
-        await apiFetch(`/api/taaskr/admin/availability/${existing.id}/`, {
+      const payload = {
+        verified: nextVerified,
+        verification_status: status,
+        verification_note: note,
+        documents_verified: Boolean(verifyForm.documents_verified),
+        bank_verified: Boolean(verifyForm.bank_verified),
+      };
+      const updated = await apiFetch(
+        `/api/taaskr/admin/taaskrcrud/${selectedTaaskr.id}/verify/`,
+        {
           method: "PATCH",
           body: JSON.stringify(payload),
-        });
-      } else {
-        payload.taaskr = selectedTaaskr.id;
-        await apiFetch("/api/taaskr/admin/availability/", {
-          method: "POST",
-          body: JSON.stringify(payload),
-        });
-      }
-      await fetchAvailability(selectedTaaskr.id);
-      setEditingDay(null);
+        }
+      );
+
+      setTaaskrs((prev) =>
+        prev.map((t) => (t.id === selectedTaaskr.id ? updated : t))
+      );
+      setSelectedTaaskr(updated);
+      setShowVerifyModal(false);
     } catch (err) {
-      alert("Failed to save availability");
+      setVerifyError(err.message || "Failed to save verification");
+    } finally {
+      setActionLoading(false);
     }
   };
 
-  const handleDeleteDay = async (dayKey) => {
-    if (!window.confirm("Remove availability for this day?")) return;
-    const existing = getDayAvailability(dayKey);
-    if (!existing) return;
-
-    try {
-      await apiFetch(`/api/taaskr/admin/availability/${existing.id}/`, {
-        method: "DELETE",
-      });
-      await fetchAvailability(selectedTaaskr.id);
-    } catch (err) {
-      alert("Failed to delete");
-    }
-  };
 
   const filteredTaaskrs = taaskrs.filter((t) => {
     const user = t.user || {};
@@ -359,6 +330,20 @@ export default function TaaskrsPage() {
 
     return matchesSearch && matchesVerified && matchesRating;
   });
+
+  const selectedDocUrls = selectedTaaskr
+    ? {
+        government_id_image: toAbsoluteUrl(
+          selectedTaaskr.government_id_image
+        ),
+        address_proof_image: toAbsoluteUrl(
+          selectedTaaskr.address_proof_image
+        ),
+        profile_photo_image: toAbsoluteUrl(
+          selectedTaaskr.profile_photo_image || selectedTaaskr.user?.profile_image
+        ),
+      }
+    : {};
 
   if (authLoading || loading) {
     return (
@@ -509,13 +494,53 @@ export default function TaaskrsPage() {
                       {user.phone || "No phone"}
                     </div>
                     <div className="flex flex-wrap gap-2">
+                      <span
+                        className={`px-3 py-1 text-xs font-medium rounded-full ${
+                          t.onboarding_completed
+                            ? "bg-emerald-50 text-emerald-700"
+                            : "bg-slate-100 text-slate-600"
+                        }`}
+                      >
+                        Onboarding {t.onboarding_completed ? "Completed" : "Pending"}
+                      </span>
+                      <span
+                        className={`px-3 py-1 text-xs font-medium rounded-full ${
+                          t.verification_status === "approved"
+                            ? "bg-emerald-50 text-emerald-700"
+                            : t.verification_status === "declined"
+                              ? "bg-red-50 text-red-700"
+                              : "bg-amber-50 text-amber-700"
+                        }`}
+                      >
+                        Verification {t.verification_status || "pending"}
+                      </span>
+                      <span
+                        className={`px-3 py-1 text-xs font-medium rounded-full ${
+                          t.documents_verified
+                            ? "bg-emerald-50 text-emerald-700"
+                            : "bg-amber-50 text-amber-700"
+                        }`}
+                      >
+                        Docs {t.documents_verified ? "Verified" : "Pending"}
+                      </span>
+                      <span
+                        className={`px-3 py-1 text-xs font-medium rounded-full ${
+                          t.bank_verified
+                            ? "bg-emerald-50 text-emerald-700"
+                            : "bg-amber-50 text-amber-700"
+                        }`}
+                      >
+                        Bank {t.bank_verified ? "Verified" : "Pending"}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
                       {t.skill_tags?.length > 0 ? (
                         t.skill_tags.map((skill) => (
                           <span
-                            key={skill}
+                            key={String(skill)}
                             className="px-3 py-1.5 bg-orange-50 text-orange-700 text-xs font-medium rounded-full"
                           >
-                            {skill}
+                            {getSkillLabel(skill)}
                           </span>
                         ))
                       ) : (
@@ -548,13 +573,13 @@ export default function TaaskrsPage() {
 
                   <div className="relative p-4 border-t border-slate-200 bg-slate-50/50">
                     <div className="flex justify-end gap-2">
-                      {hasPermission("taaskr.availability.view") && (
+                      {hasPermission("taaskr.profile.view") && (
                         <button
-                          onClick={() => openAvailabilityModal(t)}
-                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition  cursor-pointer"
+                          onClick={() => handleViewTaaskr(t.id)}
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition cursor-pointer"
                         >
-                          <Calendar className="w-5 h-5" />
-                          View Availability
+                          <Eye className="w-5 h-5" />
+                          View Profile
                         </button>
                       )}
                       <button
@@ -586,12 +611,7 @@ export default function TaaskrsPage() {
                           <MessageSquare className="w-4 h-4" />
                           Send Message
                         </button>
-                        {hasPermission("payment.view") && (
-                          <button className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50 text-sm font-medium text-slate-700 transition">
-                            <Wallet className="w-4 h-4" />
-                            View Wallet
-                          </button>
-                        )}
+                        
                         <hr className="border-slate-200" />
                         {hasPermission("taaskr.update") && (
                           <button
@@ -610,14 +630,7 @@ export default function TaaskrsPage() {
                         {hasPermission("taaskr.verify") && (
                           <button
                             onClick={() => {
-                              if (t.verified) {
-                                // unverify → show confirmation
-                                setPendingUnverifyId(t.id);
-                                setShowUnverifyConfirm(true);
-                              } else {
-                                // verify → instant
-                                handleVerifyTaaskr(t.id);
-                              }
+                              openVerifyModal(t.id);
                               setOpenDropdownId(null);
                             }}
                             disabled={actionLoading}
@@ -628,7 +641,7 @@ export default function TaaskrsPage() {
                             }`}
                           >
                             <ShieldCheck className="w-4 h-4" />
-                            {t.verified ? "Unverify Taaskr" : "Verify Taaskr"}
+                            Review & Verify
                           </button>
                         )}
                         {hasPermission("taaskr.delete") && (
@@ -656,221 +669,6 @@ export default function TaaskrsPage() {
           })
         )}
       </div>
-
-      {/* Availability Modal */}
-      {showAvailabilityModal && selectedTaaskr && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="p-6 border-b border-slate-200 flex justify-between items-center bg-white sticky top-0 z-10">
-              <div>
-                <h2 className="text-2xl font-bold text-slate-900">
-                  Weekly Availability
-                </h2>
-                <p className="text-sm text-slate-600">
-                  {selectedTaaskr.user?.full_name || "Taaskr"} (TK-
-                  {selectedTaaskr.id})
-                </p>
-              </div>
-              <button
-                onClick={() => setShowAvailabilityModal(false)}
-                className="p-2 hover:bg-slate-100 rounded-lg transition"
-              >
-                <X className="w-6 h-6 text-slate-500" />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-6">
-              {!selectedTaaskr.verified && (
-                <div className="mb-6 p-4 rounded-xl bg-orange-50 border border-orange-200 text-orange-800">
-                  <div className="flex items-start gap-3">
-                    <AlertCircle className="w-6 h-6 mt-0.5" />
-                    <div>
-                      <p className="font-semibold">
-                        Availability cannot be set for unverified Taaskrs
-                      </p>
-                      <p className="text-sm mt-1">
-                        Please verify this Taaskr first to enable availability
-                        scheduling.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {availLoading ? (
-                <div className="flex justify-center py-12">
-                  <Loader2 className="w-10 h-10 animate-spin text-orange-500" />
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {DAYS_ORDER.map((day) => {
-                    const avail = getDayAvailability(day.key);
-                    const isEditing = editingDay === day.key;
-
-                    return (
-                      <div
-                        key={day.key}
-                        className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow"
-                      >
-                        <div className="flex items-center justify-between mb-4">
-                          <h3 className="font-bold text-lg text-slate-900">
-                            {day.label}
-                          </h3>
-                          {!avail ? (
-                            <span className="text-xs text-slate-400">
-                              Not set
-                            </span>
-                          ) : avail.is_available ? (
-                            <CheckCircle className="w-6 h-6 text-emerald-500" />
-                          ) : (
-                            <AlertCircle className="w-6 h-6 text-orange-500" />
-                          )}
-                        </div>
-
-                        {isEditing ? (
-                          <div className="space-y-3">
-                            <input
-                              type="time"
-                              className="border border-gray-200 hover:border-gray-400 px-2 rounded"
-                              value={tempAvailability.start_time}
-                              onChange={(e) =>
-                                setTempAvailability((prev) => ({
-                                  ...prev,
-                                  start_time: e.target.value,
-                                }))
-                              }
-                            />
-
-                            <input
-                              type="time"
-                              className="border border-gray-200 hover:border-gray-400 px-2 rounded"
-                              value={tempAvailability.end_time}
-                              onChange={(e) =>
-                                setTempAvailability((prev) => ({
-                                  ...prev,
-                                  end_time: e.target.value,
-                                }))
-                              }
-                            />
-
-                            <label className="flex items-center gap-2 text-sm text-slate-700">
-                              <input
-                                type="checkbox"
-                                checked={tempAvailability.is_available}
-                                onChange={(e) =>
-                                  setTempAvailability((prev) => ({
-                                    ...prev,
-                                    is_available: e.target.checked,
-                                  }))
-                                }
-                                className="accent-orange-500"
-                              />
-                              Available
-                            </label>
-
-                            <div className="flex gap-2">
-                              <button
-                                disabled={!selectedTaaskr.verified}
-                                onClick={() => {
-                                  if (!selectedTaaskr.verified) return;
-
-                                  handleSaveDay(
-                                    day.key,
-                                    tempAvailability.start_time + ":00",
-                                    tempAvailability.end_time + ":00",
-                                    tempAvailability.is_available
-                                  );
-                                }}
-                                className={`flex-1 py-2 text-sm rounded-lg
-                                  ${
-                                    selectedTaaskr.verified
-                                      ? "bg-orange-500 text-white hover:bg-orange-600"
-                                      : "bg-slate-300 text-slate-500 cursor-not-allowed"
-                                  }`}
-                              >
-                                Save
-                              </button>
-
-                              <button
-                                onClick={() => setEditingDay(null)}
-                                className="px-3 py-2 bg-slate-200 text-slate-700 text-sm rounded-lg hover:bg-slate-300"
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          </div>
-                        ) : avail ? (
-                          <div className="space-y-3">
-                            <div className="flex items-center gap-2 text-slate-700">
-                              <Clock className="w-4 h-4 text-slate-500" />
-                              <span className="font-medium">
-                                {avail.start_time.slice(0, 5)} -{" "}
-                                {avail.end_time.slice(0, 5)}
-                              </span>
-                            </div>
-                            <div className="flex gap-2">
-                              <button
-                                disabled={!selectedTaaskr.verified}
-                                onClick={() => {
-                                  if (!selectedTaaskr.verified) return;
-
-                                  setTempAvailability({
-                                    start_time: avail.start_time.slice(0, 5),
-                                    end_time: avail.end_time.slice(0, 5),
-                                    is_available: avail.is_available,
-                                  });
-                                  setEditingDay(day.key);
-                                }}
-                                className={`flex-1 px-3 py-2 text-sm rounded-lg
-                                  ${
-                                    selectedTaaskr.verified
-                                      ? "bg-orange-500 text-white hover:bg-orange-600"
-                                      : "bg-slate-300 text-slate-500 cursor-not-allowed"
-                                  }`}
-                              >
-                                Edit Time
-                              </button>
-
-                              <button
-                                onClick={() => handleDeleteDay(day.key)}
-                                className="px-3 py-2 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600"
-                              >
-                                Remove
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <button
-                            disabled={!selectedTaaskr.verified}
-                            onClick={() => {
-                              if (!selectedTaaskr.verified) return;
-
-                              setTempAvailability({
-                                start_time: "09:00",
-                                end_time: "18:00",
-                                is_available: true,
-                              });
-                              setEditingDay(day.key);
-                            }}
-                            className={`w-full py-3 rounded-lg transition font-medium
-                              ${
-                                selectedTaaskr.verified
-                                  ? "bg-orange-500 text-white hover:bg-orange-600"
-                                  : "bg-slate-300 text-slate-500 cursor-not-allowed"
-                              }`}
-                          >
-                            + Set Availability
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Add Modal */}
       {showAddModal && (
@@ -1087,42 +885,263 @@ export default function TaaskrsPage() {
           </div>
         </div>
       )}
-      {/* Unverify Confirmation */}
-      {showUnverifyConfirm && (
+
+      {/* Verify Modal */}
+      {showVerifyModal && selectedTaaskr && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
-            <h2 className="text-xl font-bold text-slate-900 mb-3">
-              Unverify Taaskr?
-            </h2>
-
-            <p className="text-sm text-slate-600 mb-4">
-              This Taaskr may currently be assigned to active services or jobs.
-              Unverifying can:
-            </p>
-
-            <ul className="list-disc pl-5 text-sm text-slate-600 space-y-1 mb-6">
-              <li>Hide the Taaskr from verified listings</li>
-              <li>Impact customer trust</li>
-              <li>Restrict assignment to new services</li>
-            </ul>
-
-            <div className="flex justify-end gap-3">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-slate-200 flex justify-between items-center sticky top-0 bg-white">
+              <div>
+                <h2 className="text-2xl font-bold">Review & Verify</h2>
+                <p className="text-sm text-slate-600">
+                  {selectedTaaskr.user?.full_name || "Taaskr"} (TK-
+                  {selectedTaaskr.id})
+                </p>
+              </div>
               <button
-                onClick={() => {
-                  setShowUnverifyConfirm(false);
-                  setPendingUnverifyId(null);
-                }}
-                className="px-5 py-2.5 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 cursor-pointer"
+                className="cursor-pointer"
+                onClick={() => setShowVerifyModal(false)}
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {verifyError && (
+                <div className="p-3 rounded-lg bg-red-50 text-red-700 text-sm">
+                  {verifyError}
+                </div>
+              )}
+
+              <div className="grid sm:grid-cols-2 gap-4 text-sm text-slate-700">
+                <div>
+                  <span className="font-medium">Email:</span>
+                  <span className="ml-2">
+                    {selectedTaaskr.user?.email || "N/A"}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-medium">Phone:</span>
+                  <span className="ml-2">
+                    {selectedTaaskr.user?.phone || "N/A"}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-medium">DOB:</span>
+                  <span className="ml-2">{selectedTaaskr.dob || "N/A"}</span>
+                </div>
+                <div>
+                  <span className="font-medium">Onboarding:</span>
+                  <span className="ml-2">
+                    {selectedTaaskr.onboarding_completed ? "Completed" : "Pending"}
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900">
+                  Service Areas
+                </h3>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {selectedTaaskr.service_areas?.length ? (
+                    selectedTaaskr.service_areas.map((area) => (
+                      <span
+                        key={area.id}
+                        className="px-3 py-1 text-xs font-medium rounded-full bg-slate-100 text-slate-700"
+                      >
+                        {area.name}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-slate-500 text-sm">N/A</span>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900">Documents</h3>
+                <div className="grid sm:grid-cols-3 gap-3 mt-3">
+                  {[
+                    {
+                      key: "government_id_image",
+                      label: "Government ID",
+                      url: selectedDocUrls.government_id_image,
+                    },
+                    {
+                      key: "address_proof_image",
+                      label: "Address Proof",
+                      url: selectedDocUrls.address_proof_image,
+                    },
+                    {
+                      key: "profile_photo_image",
+                      label: "Profile Photo",
+                      url: selectedDocUrls.profile_photo_image,
+                    },
+                  ].map((doc) => (
+                    <div
+                      key={doc.key}
+                      className="border border-slate-200 rounded-xl p-3 bg-slate-50"
+                    >
+                      <p className="text-xs font-medium text-slate-700 mb-2">
+                        {doc.label}
+                      </p>
+                      {doc.url ? (
+                        <a
+                          href={doc.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <img
+                            src={doc.url}
+                            alt={doc.label}
+                            className="w-full h-24 object-cover rounded-lg border"
+                          />
+                        </a>
+                      ) : (
+                        <div className="h-24 flex items-center justify-center text-xs text-slate-500 border border-dashed rounded-lg">
+                          Not provided
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900">
+                  Bank Details
+                </h3>
+                <div className="grid sm:grid-cols-2 gap-3 text-sm text-slate-700 mt-2">
+                  <div>
+                    <span className="font-medium">Account Holder:</span>
+                    <span className="ml-2">
+                      {selectedTaaskr.bank_account_holder_name || "N/A"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="font-medium">Account Number:</span>
+                    <span className="ml-2">
+                      {selectedTaaskr.bank_account_number || "N/A"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="font-medium">IFSC:</span>
+                    <span className="ml-2">
+                      {selectedTaaskr.bank_ifsc_code || "N/A"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="font-medium">Bank Name:</span>
+                    <span className="ml-2">
+                      {selectedTaaskr.bank_name || "N/A"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t border-slate-200 pt-5 space-y-4">
+                <h3 className="text-sm font-semibold text-slate-900">
+                  Verification
+                </h3>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <label className="flex items-center gap-2 text-sm text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={verifyForm.verified}
+                      onChange={(e) =>
+                        setVerifyForm((prev) => ({
+                          ...prev,
+                          verified: e.target.checked,
+                          verification_status: e.target.checked
+                            ? "approved"
+                            : prev.verification_status === "approved"
+                              ? "pending"
+                              : prev.verification_status,
+                        }))
+                      }
+                      className="accent-orange-500"
+                    />
+                    Mark as Verified
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={verifyForm.documents_verified}
+                      onChange={(e) =>
+                        setVerifyForm((prev) => ({
+                          ...prev,
+                          documents_verified: e.target.checked,
+                        }))
+                      }
+                      className="accent-orange-500"
+                    />
+                    Documents Verified
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={verifyForm.bank_verified}
+                      onChange={(e) =>
+                        setVerifyForm((prev) => ({
+                          ...prev,
+                          bank_verified: e.target.checked,
+                        }))
+                      }
+                      className="accent-orange-500"
+                    />
+                    Bank Verified
+                  </label>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Verification Status
+                    </label>
+                    <select
+                      value={verifyForm.verification_status}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setVerifyForm((prev) => ({
+                          ...prev,
+                          verification_status: value,
+                          verified: value === "approved" ? true : value === "declined" ? false : prev.verified,
+                        }));
+                      }}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
+                    >
+                      <option value="pending">Pending</option>
+                      <option value="approved">Approved</option>
+                      <option value="declined">Declined</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Verification Note (required if declined)
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={verifyForm.verification_note}
+                    onChange={(e) =>
+                      setVerifyForm((prev) => ({
+                        ...prev,
+                        verification_note: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
+                    placeholder="Explain what is missing or incorrect"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-slate-200 flex justify-end gap-3 bg-white">
+              <button
+                onClick={() => setShowVerifyModal(false)}
+                className="px-5 py-2.5 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300"
               >
                 Cancel
               </button>
-
               <button
-                onClick={() => {
-                  handleVerifyTaaskr(pendingUnverifyId);
-                  setShowUnverifyConfirm(false);
-                  setPendingUnverifyId(null);
-                }}
+                onClick={handleSaveVerification}
                 disabled={actionLoading}
                 className="px-5 py-2.5 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-70 flex items-center gap-2"
               >
@@ -1131,7 +1150,7 @@ export default function TaaskrsPage() {
                 ) : (
                   <>
                     <ShieldCheck className="w-4 h-4" />
-                    Yes, Unverify
+                    Save Verification
                   </>
                 )}
               </button>
@@ -1153,38 +1172,209 @@ export default function TaaskrsPage() {
                 <X className="w-6 h-6" />
               </button>
             </div>
-            <div className="p-6 space-y-4">
-              <p>
-                <strong>Name:</strong> {selectedTaaskr.user?.full_name}
-              </p>
-              <p>
-                <strong>Email:</strong> {selectedTaaskr.user?.email}
-              </p>
-              <p>
-                <strong>Phone:</strong> {selectedTaaskr.user?.phone}
-              </p>
-              <p>
-                <strong>Bio:</strong> {selectedTaaskr.bio || "—"}
-              </p>
-              <p>
-                <strong>Skills:</strong>{" "}
-                {selectedTaaskr.skill_tags?.join(", ") || "—"}
-              </p>
-              <p>
-                <strong>Rating:</strong>{" "}
-                {selectedTaaskr.rating_avg?.toFixed(1) || "N/A"}
-              </p>
-              <p>
-                <strong>Total Jobs:</strong> {selectedTaaskr.total_jobs || 0}
-              </p>
-              <p>
-                <strong>Verified:</strong>{" "}
-                {selectedTaaskr.verified ? "Yes" : "No"}
-              </p>
+            <div className="p-6 space-y-6">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-full bg-slate-100 overflow-hidden border border-slate-200 flex items-center justify-center text-slate-600 font-semibold">
+                  {selectedDocUrls.profile_photo_image ? (
+                    <img
+                      src={selectedDocUrls.profile_photo_image}
+                      alt="Profile"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span>
+                      {selectedTaaskr.user?.full_name
+                          ? selectedTaaskr.user.full_name
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")
+                            .toUpperCase()
+                        : "TK"}
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <p className="text-lg font-semibold">
+                    {selectedTaaskr.user?.full_name || "Unnamed Taaskr"}
+                  </p>
+                  <p className="text-sm text-slate-600">
+                    {selectedTaaskr.user?.email || "N/A"}
+                  </p>
+                  <p className="text-sm text-slate-600">
+                    {selectedTaaskr.user?.phone || "N/A"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-3 text-sm text-slate-700">
+                <div>
+                  <span className="font-medium">DOB:</span>
+                  <span className="ml-2">{selectedTaaskr.dob || "N/A"}</span>
+                </div>
+                <div>
+                  <span className="font-medium">Onboarding:</span>
+                  <span className="ml-2">
+                    {selectedTaaskr.onboarding_completed ? "Completed" : "Pending"}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-medium">Verification Status:</span>
+                  <span className="ml-2">
+                    {selectedTaaskr.verification_status || "pending"}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-medium">Verified:</span>
+                  <span className="ml-2">
+                    {selectedTaaskr.verified ? "Yes" : "No"}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-medium">Documents Verified:</span>
+                  <span className="ml-2">
+                    {selectedTaaskr.documents_verified ? "Yes" : "No"}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-medium">Bank Verified:</span>
+                  <span className="ml-2">
+                    {selectedTaaskr.bank_verified ? "Yes" : "No"}
+                  </span>
+                </div>
+              </div>
+              {selectedTaaskr.verification_note && (
+                <div className="text-sm text-slate-700">
+                  <span className="font-medium">Verification Note:</span>
+                  <span className="ml-2">{selectedTaaskr.verification_note}</span>
+                </div>
+              )}
+
               <div>
-                <strong>Certifications:</strong>
+                <h3 className="text-sm font-semibold text-slate-900">Bio</h3>
+                <p className="text-sm text-slate-600 mt-1">
+                  {selectedTaaskr.bio || "N/A"}
+                </p>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900">Skills</h3>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {selectedTaaskr.skill_tags?.length ? (
+                    selectedTaaskr.skill_tags.map((skill) => (
+                      <span
+                        key={String(skill)}
+                        className="px-3 py-1 text-xs font-medium rounded-full bg-orange-50 text-orange-700"
+                      >
+                        {getSkillLabel(skill)}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-slate-500 text-sm">N/A</span>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900">Service Areas</h3>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {selectedTaaskr.service_areas?.length ? (
+                    selectedTaaskr.service_areas.map((area) => (
+                      <span
+                        key={area.id}
+                        className="px-3 py-1 text-xs font-medium rounded-full bg-slate-100 text-slate-700"
+                      >
+                        {area.name}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-slate-500 text-sm">N/A</span>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900">Bank Details</h3>
+                <div className="grid sm:grid-cols-2 gap-3 text-sm text-slate-700 mt-2">
+                  <div>
+                    <span className="font-medium">Account Holder:</span>
+                    <span className="ml-2">
+                      {selectedTaaskr.bank_account_holder_name || "N/A"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="font-medium">Account Number:</span>
+                    <span className="ml-2">
+                      {selectedTaaskr.bank_account_number || "N/A"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="font-medium">IFSC:</span>
+                    <span className="ml-2">{selectedTaaskr.bank_ifsc_code || "N/A"}</span>
+                  </div>
+                  <div>
+                    <span className="font-medium">Bank Name:</span>
+                    <span className="ml-2">{selectedTaaskr.bank_name || "N/A"}</span>
+                  </div>
+                  <div>
+                    <span className="font-medium">UPI ID:</span>
+                    <span className="ml-2">{selectedTaaskr.bank_upi_id || "N/A"}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900">Documents</h3>
+                <div className="grid sm:grid-cols-3 gap-3 mt-3">
+                  {[
+                    {
+                      key: "government_id_image",
+                      label: "Government ID",
+                      url: selectedDocUrls.government_id_image,
+                    },
+                    {
+                      key: "address_proof_image",
+                      label: "Address Proof",
+                      url: selectedDocUrls.address_proof_image,
+                    },
+                    {
+                      key: "profile_photo_image",
+                      label: "Profile Photo",
+                      url: selectedDocUrls.profile_photo_image,
+                    },
+                  ].map((doc) => (
+                    <div
+                      key={doc.key}
+                      className="border border-slate-200 rounded-xl p-3 bg-slate-50"
+                    >
+                      <p className="text-xs font-medium text-slate-700 mb-2">
+                        {doc.label}
+                      </p>
+                      {doc.url ? (
+                        <a
+                          href={doc.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <img
+                            src={doc.url}
+                            alt={doc.label}
+                            className="w-full h-24 object-cover rounded-lg border"
+                          />
+                        </a>
+                      ) : (
+                        <div className="h-24 flex items-center justify-center text-xs text-slate-500 border border-dashed rounded-lg">
+                          Not provided
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900">Certifications</h3>
                 {selectedTaaskr.certification?.length > 0 ? (
-                  <ul className="list-disc pl-6 mt-2">
+                  <ul className="list-disc pl-6 mt-2 text-sm">
                     {selectedTaaskr.certification.map((cert, i) => (
                       <li key={i}>
                         <a
@@ -1199,7 +1389,7 @@ export default function TaaskrsPage() {
                     ))}
                   </ul>
                 ) : (
-                  <span className="ml-2 text-slate-500">—</span>
+                  <p className="text-sm text-slate-500 mt-1">???</p>
                 )}
               </div>
             </div>

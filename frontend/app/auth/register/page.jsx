@@ -1,8 +1,10 @@
+// app/auth/register/page.jsx
 "use client";
 
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { apiFetch } from "@/utils/api";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -34,7 +36,7 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:8000/api/users/register/", {
+      const data = await apiFetch("/api/users/register/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -48,20 +50,19 @@ export default function RegisterPage() {
         }),
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
+      if (data?.error) {
         alert(data.error || "Registration failed");
-      } else {
-        alert("Account created successfully!");
-        router.push("/auth/login");
+        return;
       }
+
+      alert("Account created successfully!");
+      router.push("/auth/login");
     } catch (error) {
       console.error("Register error:", error);
       alert("Something went wrong.");
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   const handleInputChange = (e) => {
@@ -101,7 +102,7 @@ export default function RegisterPage() {
                 type="text"
                 required
                 placeholder="Enter your full name"
-                value={formData.name}
+                value={formData.full_name ?? ""}
                 onChange={handleInputChange}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
               />
@@ -121,7 +122,7 @@ export default function RegisterPage() {
                 type="email"
                 required
                 placeholder="your.email@example.com"
-                value={formData.email}
+                value={formData.email ?? ""}
                 onChange={handleInputChange}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
               />
@@ -141,7 +142,7 @@ export default function RegisterPage() {
                 type="tel"
                 required
                 placeholder="+91 98765 43210"
-                value={formData.phone}
+                value={formData.phone ?? ""}
                 onChange={handleInputChange}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
               />
@@ -161,7 +162,7 @@ export default function RegisterPage() {
                 type="password"
                 required
                 placeholder="Create a strong password"
-                value={formData.password}
+                value={formData.password ?? ""}
                 onChange={handleInputChange}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
               />
@@ -181,7 +182,7 @@ export default function RegisterPage() {
                 type="password"
                 required
                 placeholder="Re-enter your password"
-                value={formData.confirmPassword}
+                value={formData.confirmPassword ?? ""}
                 onChange={handleInputChange}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
               />
@@ -192,7 +193,7 @@ export default function RegisterPage() {
               <input
                 id="terms"
                 type="checkbox"
-                checked={formData.agreeToTerms}
+                checked={!!formData.agreeToTerms}
                 onChange={handleCheckboxChange}
                 className="mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
               />

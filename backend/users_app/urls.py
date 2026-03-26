@@ -19,6 +19,7 @@ from users_app.views.verification_views import (
     SendEmailOTPView, VerifyEmailOTPView,
     SendPhoneOTPView, VerifyPhoneOTPView,
 )
+from users_app.views.taaskr_register_view import TaaskrRegisterView
 
 router = DefaultRouter()
 router.register(r"roles", RoleViewSet, basename="role")
@@ -32,6 +33,7 @@ router.register(
 
 
 urlpatterns = [
+    path("taaskr/register/", TaaskrRegisterView.as_view()),
     path("register/", RegisterView.as_view()),
     path("login/", LoginView.as_view()),
     path("token/refresh/", RefreshAccessTokenView.as_view()),
@@ -59,6 +61,8 @@ urlpatterns = [
          name="customer-avatar-upload"),
     path("customer/me/change-password/",
          ChangePasswordView.as_view(), name="customer-change-password"),
+    path("me/change-password/",
+         ChangePasswordView.as_view(), name="user-change-password"),
 
 
     # otp urls

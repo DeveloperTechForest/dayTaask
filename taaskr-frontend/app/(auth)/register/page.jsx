@@ -1,50 +1,86 @@
-// app/register/page.js    ← place it in app/register/page.js for route /register
+// app/(auth)/register/page.jsx
 "use client";
 
 import Link from "next/link";
 import { useState } from "react";
 import { Logo } from "@/components/taaskr/Logo";
-import { ArrowLeft, Chrome, Loader2, CheckCircle } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { apiFetch } from "@/utils/api";
 
 export default function RegisterPage() {
   const router = useRouter();
 
   const [isLoading, setIsLoading] = useState(false);
-  const [step, setStep] = useState(1); // 1 = form, 2 = OTP
-  const [otp, setOtp] = useState("");
+  const [error, setError] = useState("");
+  const [form, setForm] = useState({
+    full_name: "",
+    phone: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    agreeToTerms: false,
+  });
 
-  const handleSendOTP = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+
+    if (form.password !== form.confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    if (!form.agreeToTerms) {
+      setError("You must agree to the terms and privacy policy.");
+      return;
+    }
+
     setIsLoading(true);
 
-    // Simulate sending OTP
-    setTimeout(() => {
-      setStep(2);
+    const res = await apiFetch("/api/users/taaskr/register/", {
+      method: "POST",
+      body: JSON.stringify({
+        full_name: form.full_name.trim(),
+        phone: form.phone.trim(),
+        email: form.email.trim(),
+        password: form.password,
+        profile: {
+          bio: "",
+          skill_tags: [],
+          certification: [],
+        },
+      }),
+    });
+
+    if (res?.error) {
+      setError(res?.detail || res?.message || "Registration failed");
       setIsLoading(false);
-    }, 1200);
-  };
+      return;
+    }
 
-  const handleVerifyOTP = (e) => {
-    e.preventDefault();
-    setIsLoading(true);
+    const loginRes = await apiFetch("/api/users/login/", {
+      method: "POST",
+      body: JSON.stringify({
+        email: form.email.trim() || null,
+        phone: form.phone.trim() || null,
+        password: form.password,
+      }),
+    });
 
-    // Simulate verification success
-    setTimeout(() => {
-      router.push("/onboarding");
-    }, 1200);
-  };
+    if (loginRes?.error) {
+      setError("Account created, please log in.");
+      setIsLoading(false);
+      router.push("/login");
+      return;
+    }
 
-  const handleGoogleRegister = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      router.push("/onboarding");
-    }, 1500);
+    setIsLoading(false);
+    router.push("/onboarding");
   };
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)] flex flex-col">
-      {/* Header / Back */}
       <header className="sticky top-0 z-50 bg-[var(--color-surface)]/80 backdrop-blur-xl border-b border-[var(--color-border)]">
         <div className="container flex items-center h-14 px-4 md:px-6">
           <Link
@@ -57,10 +93,8 @@ export default function RegisterPage() {
         </div>
       </header>
 
-      {/* Main Content */}
       <div className="flex-1 flex items-center justify-center py-8 px-4">
         <div className="w-full max-w-md space-y-8">
-          {/* Logo + Title */}
           <div className="text-center space-y-3">
             <Logo size="lg" className="justify-center mb-4" />
             <h1 className="text-2xl font-bold font-display">Become a Taaskr</h1>
@@ -69,169 +103,157 @@ export default function RegisterPage() {
             </p>
           </div>
 
-          {/* Register Card */}
           <div className="bg-[var(--color-surface)] rounded-xl border border-[var(--color-border)] shadow-[var(--shadow-lg)] p-6 md:p-8 space-y-6">
-            {/* Google Button */}
-            <button
-              type="button"
-              onClick={handleGoogleRegister}
-              disabled={isLoading}
-              className="w-full flex items-center justify-center gap-3 rounded-lg border border-[var(--color-border)] bg-white py-3 px-4 text-[var(--color-text)] hover:bg-gray-50 transition-colors disabled:opacity-60"
-            >
-              <Chrome className="w-5 h-5" />
-              Continue with Google
-            </button>
-
-            {/* Divider */}
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-[var(--color-divider)]" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-[var(--color-surface)] px-3 text-[var(--color-text-light)]">
-                  Or register with phone
-                </span>
-              </div>
-            </div>
-
-            {/* Step 1: Registration Form */}
-            {step === 1 ? (
-              <form onSubmit={handleSendOTP} className="space-y-5">
-                {/* Full Name */}
-                <div className="space-y-2">
-                  <label
-                    htmlFor="name"
-                    className="block text-sm font-medium text-[var(--color-text)]"
-                  >
-                    Full Name
-                  </label>
-                  <input
-                    id="name"
-                    type="text"
-                    placeholder="Enter your full name"
-                    className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30"
-                    required
-                  />
-                </div>
-
-                {/* Phone Number */}
-                <div className="space-y-2">
-                  <label
-                    htmlFor="phone"
-                    className="block text-sm font-medium text-[var(--color-text)]"
-                  >
-                    Phone Number
-                  </label>
-                  <div className="flex">
-                    <span className="inline-flex items-center px-4 text-sm text-[var(--color-text-light)] bg-gray-100 border border-r-0 border-[var(--color-border)] rounded-l-lg">
-                      +91
-                    </span>
-                    <input
-                      id="phone"
-                      type="tel"
-                      placeholder="Enter your phone number"
-                      className="flex-1 rounded-r-lg border border-[var(--color-border)] px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30"
-                      required
-                    />
-                  </div>
-                </div>
-
-                {/* Email (optional) */}
-                <div className="space-y-2">
-                  <label
-                    htmlFor="email"
-                    className="block text-sm font-medium text-[var(--color-text)]"
-                  >
-                    Email (Optional)
-                  </label>
-                  <input
-                    id="email"
-                    type="email"
-                    placeholder="you@example.com"
-                    className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30"
-                  />
-                </div>
-
-                {/* Submit Button */}
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className={`w-full flex items-center justify-center gap-2 rounded-lg py-3 px-4 font-medium text-white transition-all ${
-                    isLoading
-                      ? "bg-[var(--color-primary)]/70 cursor-wait"
-                      : "bg-[var(--color-primary)] hover:bg-[var(--color-primary-d)] shadow-md"
-                  }`}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      Sending OTP...
-                    </>
-                  ) : (
-                    "Send OTP"
-                  )}
-                </button>
-              </form>
-            ) : (
-              /* Step 2: OTP Verification */
-              <form onSubmit={handleVerifyOTP} className="space-y-5">
-                <div className="text-center mb-6">
-                  <CheckCircle className="w-12 h-12 text-[var(--color-success)] mx-auto mb-3" />
-                  <p className="text-sm text-[var(--color-text-light)]">
-                    OTP sent to your phone number
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <label
-                    htmlFor="otp"
-                    className="block text-sm font-medium text-[var(--color-text)]"
-                  >
-                    Enter OTP
-                  </label>
-                  <input
-                    id="otp"
-                    type="text"
-                    placeholder="6-digit OTP"
-                    maxLength={6}
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
-                    className="w-full rounded-lg border border-[var(--color-border)] px-4 py-3 text-center text-lg tracking-widest focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30"
-                    required
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className={`w-full flex items-center justify-center gap-2 rounded-lg py-3 px-4 font-medium text-white transition-all ${
-                    isLoading
-                      ? "bg-[var(--color-primary)]/70 cursor-wait"
-                      : "bg-[var(--color-primary)] hover:bg-[var(--color-primary-d)] shadow-md"
-                  }`}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      Verifying...
-                    </>
-                  ) : (
-                    "Verify & Continue"
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setStep(1)}
-                  className="w-full text-sm text-[var(--color-text-light)] hover:text-[var(--color-text)] transition-colors"
-                >
-                  Change phone number
-                </button>
-              </form>
+            {error && (
+              <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+                {error}
+              </p>
             )}
+
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="space-y-2">
+                <label htmlFor="name" className="block text-sm font-medium">
+                  Full Name
+                </label>
+                <input
+                  id="name"
+                  type="text"
+                  value={form.full_name}
+                  onChange={(e) =>
+                    setForm({ ...form, full_name: e.target.value })
+                  }
+                  placeholder="Enter your full name"
+                  className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="phone" className="block text-sm font-medium">
+                  Phone Number
+                </label>
+                <div className="flex">
+                  <span className="inline-flex items-center px-4 text-sm text-[var(--color-text-light)] bg-gray-100 border border-r-0 border-[var(--color-border)] rounded-l-lg">
+                    +91
+                  </span>
+                  <input
+                    id="phone"
+                    type="tel"
+                    value={form.phone}
+                    onChange={(e) =>
+                      setForm({ ...form, phone: e.target.value })
+                    }
+                    placeholder="Enter your phone number"
+                    className="flex-1 rounded-r-lg border border-[var(--color-border)] px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="email" className="block text-sm font-medium">
+                  Email
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  placeholder="you@example.com"
+                  className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="password" className="block text-sm font-medium">
+                  Password
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  value={form.password}
+                  onChange={(e) =>
+                    setForm({ ...form, password: e.target.value })
+                  }
+                  placeholder="Enter a password"
+                  className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label
+                  htmlFor="confirmPassword"
+                  className="block text-sm font-medium"
+                >
+                  Confirm Password
+                </label>
+                <input
+                  id="confirmPassword"
+                  type="password"
+                  value={form.confirmPassword}
+                  onChange={(e) =>
+                    setForm({ ...form, confirmPassword: e.target.value })
+                  }
+                  placeholder="Re-enter your password"
+                  className="w-full rounded-lg border border-[var(--color-border)] px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30"
+                  required
+                />
+              </div>
+
+              <div className="flex items-start gap-3">
+                <input
+                  id="terms"
+                  type="checkbox"
+                  checked={form.agreeToTerms}
+                  onChange={(e) =>
+                    setForm({ ...form, agreeToTerms: e.target.checked })
+                  }
+                  className="mt-1 h-4 w-4 text-[var(--color-primary)] border-[var(--color-border)] rounded focus:ring-[var(--color-primary)]"
+                />
+                <label
+                  htmlFor="terms"
+                  className="text-sm text-[var(--color-text-light)] leading-tight"
+                >
+                  I agree to the{" "}
+                  <Link
+                    href="#"
+                    className="text-[var(--color-primary)] font-medium hover:underline"
+                  >
+                    Terms of Service
+                  </Link>{" "}
+                  and{" "}
+                  <Link
+                    href="#"
+                    className="text-[var(--color-primary)] font-medium hover:underline"
+                  >
+                    Privacy Policy
+                  </Link>
+                </label>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className={`w-full flex items-center justify-center gap-2 rounded-lg py-3 px-4 font-medium text-white transition-all ${
+                  isLoading
+                    ? "bg-[var(--color-primary)]/70 cursor-wait"
+                    : "bg-[var(--color-primary)] hover:bg-[var(--color-primary-d)] shadow-md"
+                }`}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Creating account...
+                  </>
+                ) : (
+                  "Create Account"
+                )}
+              </button>
+            </form>
           </div>
 
-          {/* Already have account */}
           <p className="text-center text-sm text-[var(--color-text-light)]">
             Already have an account?{" "}
             <Link
@@ -240,18 +262,6 @@ export default function RegisterPage() {
             >
               Sign In
             </Link>
-          </p>
-
-          {/* Terms */}
-          <p className="text-center text-xs text-[var(--color-text-light)] px-4">
-            By registering, you agree to our{" "}
-            <a href="#" className="text-[var(--color-primary)] hover:underline">
-              Terms of Service
-            </a>{" "}
-            and{" "}
-            <a href="#" className="text-[var(--color-primary)] hover:underline">
-              Privacy Policy
-            </a>
           </p>
         </div>
       </div>

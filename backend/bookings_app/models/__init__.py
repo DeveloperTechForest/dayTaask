@@ -8,3 +8,4 @@ from .assignment_log import AssignmentLog
 from .customService import CustomService
 from .quote_request import QuoteRequest
 from .quote_image import QuoteImage
+from .booking_media import BookingMedia

@@ -168,10 +168,13 @@ export default function Payment() {
     setError("");
 
     try {
-      const res = await apiFetch("/api/payments/customer/payments/cod/", {
-        method: "POST",
-        body: JSON.stringify({ booking_id: booking.id }),
-      });
+      const res = await apiFetch(
+        "/api/payments/customer/payments/confirm-cod/",
+        {
+          method: "POST",
+          body: JSON.stringify({ booking_id: booking.id }),
+        },
+      );
 
       if (res?.error) throw new Error(res.error);
 

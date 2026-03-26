@@ -1,6 +1,5 @@
 from django.db import models
 from .category import Category
-from django.contrib.postgres.fields import ArrayField
 
 
 class Service(models.Model):
@@ -19,8 +18,7 @@ class Service(models.Model):
     is_active = models.BooleanField(default=True)
     warranty_days = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
-    whats_included = ArrayField(models.CharField(
-        max_length=255), default=list, blank=True)
+    whats_included = models.TextField(blank=True, default="")
     slug = models.SlugField(max_length=200, unique=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 

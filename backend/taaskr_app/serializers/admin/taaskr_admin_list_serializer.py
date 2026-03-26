@@ -3,11 +3,11 @@ from users_app.models import User
 from taaskr_app.models.profile import TaaskrProfile
 from taaskr_app.models.availability import Availability
 from bookings_app.models import AssignmentLog
+from taaskr_app.serializers.taaskr_serializer import _parse_text_list
 
 
 class TaaskrAdminListSerializer(serializers.ModelSerializer):
-    skill_tags = serializers.ListField(
-        source="taaskrprofile.skill_tags", read_only=True)
+    skill_tags = serializers.SerializerMethodField()
     rating_avg = serializers.FloatField(
         source="taaskrprofile.rating_avg", read_only=True)
     total_jobs = serializers.IntegerField(
@@ -39,6 +39,10 @@ class TaaskrAdminListSerializer(serializers.ModelSerializer):
         latest = Availability.objects.filter(
             taaskr=obj).order_by("-updated_at").first()
         return latest.is_available if latest else True
+
+    def get_skill_tags(self, obj):
+        profile = getattr(obj, "taaskrprofile", None)
+        return _parse_text_list(profile.skill_tags) if profile else []
 
     def get_accepted_count(self, obj):
         return AssignmentLog.objects.filter(taaskr=obj, status="accepted").count()

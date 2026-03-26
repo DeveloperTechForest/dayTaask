@@ -4,6 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import ServiceCard from "@/components/ServiceCard";
 import { Search, SlidersHorizontal } from "lucide-react";
+import { apiFetch } from "@/utils/api";
 
 export default function ServicesByCategory() {
   const { categoryId } = useParams();
@@ -27,17 +28,17 @@ export default function ServicesByCategory() {
       setError(null);
 
       try {
-        const url = `http://localhost:8000/api/services/category/${encodeURIComponent(
+        const url = `/api/services/category/${encodeURIComponent(
           categoryId,
         )}/services/`;
 
-        const res = await fetch(url, { signal: controller.signal });
-
-        if (!res.ok) {
-          throw new Error(`API returned ${res.status}`);
+        const json = await apiFetch(url, { signal: controller.signal });
+        if (json?.error) {
+          if (!controller.signal.aborted) {
+            throw new Error(json.error);
+          }
+          return;
         }
-
-        const json = await res.json();
 
         // If your endpoint returns a list directly, use json.results or json (adjust as needed)
         // I will assume it returns a paginated object OR a list. Handle both:
@@ -252,7 +253,9 @@ export default function ServicesByCategory() {
               No services found for this category
             </p>
             <button
-              onClick={() => router.push("/quote-request")}
+              onClick={() =>
+                router.push(`/user/quote/quote-request?categoryId=${categoryId}`)
+              }
               className="px-8 py-4 bg-secondary text-white font-bold rounded-xl hover:bg-amber-600 transition-brand shadow-lg text-lg"
             >
               Request Custom Quote

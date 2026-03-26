@@ -5,7 +5,7 @@ from django.utils import timezone
 
 from bookings_app.models import Booking, AssignmentLog
 from users_app.models import User
-from bookings_app.serializers.utils.assignment_utils import accepted_taaskr_count
+from bookings_app.serializers.utils.assignment_utils import recalculate_assignment_status
 
 
 class AdminBookingCreateSerializer(serializers.ModelSerializer):
@@ -52,14 +52,7 @@ class AdminBookingCreateSerializer(serializers.ModelSerializer):
                 status="requested",
                 expires_at=timezone.now() + timezone.timedelta(hours=2),
             )
-
-        # 🔹 Final assignment status
-        accepted = accepted_taaskr_count(booking)
-        if accepted >= booking.required_taaskrs:
-            booking.assignment_status = "assigned"
-        elif accepted > 0:
-            booking.assignment_status = "partially_assigned"
-
-        booking.save(update_fields=["assignment_status"])
+        # Final assignment status based on logs
+        recalculate_assignment_status(booking)
 
         return booking

@@ -1,6 +1,26 @@
 // /utils/api.js
+const DEFAULT_FALLBACK = "http://localhost:8000";
+
+function getBaseUrl() {
+  const envUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (envUrl) return envUrl.replace(/\/$/, "");
+  if (typeof window !== "undefined" && window.location) {
+    const { protocol, hostname } = window.location;
+    if (hostname === "localhost" || hostname === "127.0.0.1") {
+      return DEFAULT_FALLBACK;
+    }
+    const parts = hostname.split(".");
+    if (parts.length >= 2) {
+      const root = parts.slice(-2).join(".");
+      return `${protocol}//api.${root}`;
+    }
+    return window.location.origin;
+  }
+  return DEFAULT_FALLBACK;
+}
+
 export async function apiFetch(path, options = {}, { retry = true } = {}) {
-  const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  const BASE_URL = getBaseUrl();
   const url = path.startsWith("http") ? path : `${BASE_URL}${path}`;
 
   const isFormData = options.body instanceof FormData;

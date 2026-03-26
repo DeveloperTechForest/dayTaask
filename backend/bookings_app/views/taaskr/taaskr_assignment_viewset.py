@@ -30,8 +30,8 @@ class TaaskrPendingAssignmentsViewSet(viewsets.ReadOnlyModelViewSet):
         return AssignmentLog.objects.filter(
             taaskr=self.request.user,
             status="requested",
-            # Optional: hide requests that already expired
-            expires_at__gt=timezone.now(),
+        ).exclude(
+            booking__status__in=["cancelled", "completed"],
         ).select_related(
             "booking",
             "booking__service",
@@ -61,6 +61,8 @@ class TaaskrAssignmentsHistoryViewSet(viewsets.ReadOnlyModelViewSet):
         ).select_related(
             "booking",
             "booking__service",
+            "booking__customer",
+            "booking__address",
         ).order_by("-updated_at", "-created_at")
 
 

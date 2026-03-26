@@ -33,10 +33,14 @@ export function AuthProvider({ children }) {
     try {
       const data = await apiFetch("/api/users/me/?context=admin");
 
+      // if (!data || data.error) {
+      //   setUser(null);
+      //   setLoading(false);
+      //   return null;
+      // }
       if (!data || data.error) {
-        setUser(null);
         setLoading(false);
-        return null;
+        return null; // ❌ DON'T clear user
       }
 
       setUser(data);
@@ -74,7 +78,7 @@ export function AuthProvider({ children }) {
    * Admin check helper
    */
   const isAdminUser = (u) => {
-    console.log("Checking admin for user:", u);
+    // console.log("Checking admin for user:", u);
     if (!u || !Array.isArray(u.role)) return false;
     return u.role.some((r) => r.is_admin_role === true);
   };
@@ -103,7 +107,7 @@ export function AuthProvider({ children }) {
         setError(
           data.error === "INVALID_CREDENTIALS"
             ? "Invalid credentials"
-            : data.error
+            : data.error,
         );
         return { ok: false };
       }
@@ -167,7 +171,7 @@ export function AuthProvider({ children }) {
     setUser(null);
     setLoading(false);
 
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/logout/`, {
+    apiFetch("/api/users/logout/", {
       method: "POST",
       credentials: "include",
     }).catch(() => {});

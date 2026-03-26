@@ -33,6 +33,8 @@ const getStatusConfig = (status) => {
     quoted: { badge: "bg-blue-100 text-blue-800", label: "Quoted" },
     accepted: { badge: "bg-emerald-100 text-emerald-800", label: "Accepted" },
     converted: { badge: "bg-emerald-100 text-emerald-800", label: "Converted" },
+    in_progress: { badge: "bg-sky-100 text-sky-800", label: "In Progress" },
+    completed: { badge: "bg-green-100 text-green-800", label: "Completed" },
     rejected: { badge: "bg-red-100 text-red-800", label: "Rejected" },
   };
   return (
@@ -159,7 +161,12 @@ export default function AdminQuoteRequestsPage() {
         { method: "POST" },
       );
       alert("Custom service created successfully!");
-      window.location.href = `/admin/custom-services/${res.custom_service_id}/edit`;
+      await fetchQuotes();
+      if (res?.custom_service_id) {
+        openCustomServiceView(res.custom_service_id);
+      } else {
+        router.push("/quotes/customServices");
+      }
     } catch (err) {
       alert(err?.detail || "Failed to create custom service");
     }
@@ -346,6 +353,7 @@ export default function AdminQuoteRequestsPage() {
 
       setShowCustomServiceModal(false);
       fetchQuoteDetail(selectedQuote.id); // Refresh sidebar
+      fetchQuotes(); // Refresh list to update status
     } catch (err) {
       alert(err?.detail || "Failed to save custom service");
     } finally {
